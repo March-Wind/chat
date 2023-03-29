@@ -6,7 +6,7 @@
     "scripts": {
         "dev": "node --loader ts-node/esm ./src/index.ts",
         "dev2": "ts-node ./src/index.ts",
-        "dev:debug": " node --inspect-brk  --loader ts-node/esm ./src/index.ts",
+        "dev:debug": "OPENAI_BASE_ORIGIN=http://43.153.51.25:1000/proxyOpenAI node --inspect-brk  --loader ts-node/esm ./src/index.ts",
         "build:js": "npm run clean:lib && tsc && tsc-alias",
         "build:prod": "webpack",
         "eslint": "eslint ./src --fix",
@@ -23,7 +23,10 @@
         "@babel/preset-typescript": "^7.18.6",
         "@commitlint/cli": "^17.4.4",
         "@commitlint/config-conventional": "^17.4.4",
+        "@types/eventsource": "^1.1.11",
         "@types/jest": "^29.4.4",
+        "@types/koa": "^2.13.5",
+        "@types/koa__router": "^12.0.0",
         "@types/node": "^18.15.3",
         "@typescript-eslint/eslint-plugin": "^5.55.0",
         "@typescript-eslint/parser": "^5.55.0",
@@ -61,5 +64,12 @@
             "prettier --config .prettierrc --write"
         ],
         "*.+(css|less|scss|sass)": "stylelint --fix"
+    },
+    "dependencies": {
+        "@koa/router": "^12.0.0",
+        "@marchyang/openai": "^3.2.4",
+        "axios": "^1.3.4",
+        "eventsource": "^2.0.2",
+        "koa": "^2.14.1"
     }
 }
