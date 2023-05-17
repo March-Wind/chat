@@ -1,6 +1,6 @@
-import { AxiosResponse } from 'axios';
-import { PassThrough } from 'stream';
-import Router, { Middleware } from '@koa/router';
+// import { AxiosResponse } from 'axios';
+// import { PassThrough } from 'stream';
+import Router from '@koa/router';
 
 const page = (router: Router) => {
   router.get('/page', (ctx) => {
@@ -11,7 +11,7 @@ const page = (router: Router) => {
       <h1>response:</h1>
       <div id="result"></div>
       <script>
-      var source = new EventSource("/question?a=你好");
+      var source = new EventSource("/test?a=你好");
       source.onmessage = function(event) {
           document.getElementById("result").innerHTML += event.data + "<br>";
       };

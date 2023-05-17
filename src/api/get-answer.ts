@@ -1,50 +1,17 @@
-// import { OpenAIApi, Configuration, ChatCompletionRequestMessage } from "@marchyang/openai";
-// const configuration = new Configuration({
-//   apiKey: " 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",
-// });
-// const openai = new OpenAIApi(configuration);
-// const _msg: ChatCompletionRequestMessage[] = [];
-// const answer = async (message: string) => {
-//   const msgItem: ChatCompletionRequestMessage = {
-//     role: 'user', content: message
-//   }
-//   _msg.push(msgItem)
-//   debugger
-//   const completion = await openai.createChatCompletion({
-//     model: "gpt-3.5-turbo",
-//     messages: _msg,
-//   }, {
-//     responseType: 'stream'
-//   }).catch((res) => {
-//     console.log(res)
-//     debugger
-//   })
-//   debugger
-//   if (completion?.data?.choices[0].message) {
-//     _msg.push(completion?.data?.choices[0].message)
-//     return completion.data.choices[0].message;
-//   }
-//   console.log(completion)
-//   return '我其实报错了'
-// };
-
-// export default answer;
+import SocksProxyAgent from 'socks-proxy-agent';
+const httpsAgent = new SocksProxyAgent.SocksProxyAgent('socks5://127.0.0.1:1086');
 import { AxiosResponse } from 'axios';
 import { PassThrough } from 'stream';
-import Router, { Middleware } from '@koa/router';
-import {
-  OpenAIApi,
-  Configuration,
-  ChatCompletionRequestMessage,
-  CreateChatCompletionResponse,
-} from '@marchyang/openai';
+import Router from '@koa/router';
+import { OpenAIApi, Configuration, ChatCompletionRequestMessage, CreateChatCompletionResponse } from 'openai';
+import { openai_key } from '../env';
 const configuration = new Configuration({
-  apiKey: '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',
+  apiKey: openai_key,
 });
 const openai = new OpenAIApi(configuration);
 const _msg: ChatCompletionRequestMessage[] = [];
 const getAnswer = async (router: Router) => {
-  router.get('/question', async (ctx) => {
+  router.get('/question', async (ctx, next) => {
     const { query } = ctx.request;
     const message = query.a as string;
     // const result = await answer(message);
@@ -56,18 +23,18 @@ const getAnswer = async (router: Router) => {
       content: message,
     };
     _msg.push(msgItem);
-    debugger;
     const answer = openai.createChatCompletion(
       {
         model: 'gpt-3.5-turbo',
         messages: _msg,
         stream: true,
+        temperature: 0.2,
       },
       {
+        httpsAgent,
+        httpAgent: httpsAgent,
         responseType: 'stream',
-        // headers: {
-        //   "Accept": "text/event-stream"
-        // }
+        proxy: false,
       },
     );
     ctx.set({
@@ -83,19 +50,18 @@ const getAnswer = async (router: Router) => {
     ctx.body = answerStream;
     answer
       .then((resp) => {
-        debugger;
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
-        (resp as AxiosResponse<CreateChatCompletionResponse, any>).data.on('data', (data) => {
-          const msg = data.toString();
-          console.log(msg);
-          answerStream.write(`data: ${msg}\n\n`);
+        (resp as AxiosResponse<CreateChatCompletionResponse, any>).data.on('data', (data: Buffer) => {
+          const _msg = data.toString();
+          answerStream.write(`data: ${_msg}\n\n`);
         });
       })
       .catch((res) => {
         console.log(res);
-        debugger;
       });
+
+    next();
   });
 };
 

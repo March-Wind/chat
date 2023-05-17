@@ -24,6 +24,10 @@
     "noUnusedParameters": true,
     "strictPropertyInitialization": false,
     "strict": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "noUncheckedIndexedAccess": true,
     "lib": [
       "esnext"
     ],
