@@ -4,7 +4,7 @@ import { PassThrough } from 'stream';
 // to do 这里支持单人的
 const chat = new Chat();
 const playChat = async (router: Router) => {
-  router.post('/playChat', async (ctx, next) => {
+  router.post('/chat', async (ctx, next) => {
     ctx.set({
       // 'Content-Type': 'text/event-stream',
       'Content-Type': 'text/event-stream;',
@@ -20,12 +20,17 @@ const playChat = async (router: Router) => {
 
     next();
     const { msg = '你好' } = ctx.request.body as { msg: string };
-
-    chat.ask(msg).then((resp) => {
-      chat.receivingAnswer(resp, (message) => {
-        answerStream.write(`data: ${JSON.stringify(message)}\n\n`);
+    // to do 这里如果是空字符串，怎么处理
+    chat
+      .ask(msg)
+      .then((resp) => {
+        chat.receivingAnswer(resp, (message) => {
+          answerStream.write(`${JSON.stringify(message)}`);
+        });
+      })
+      .catch((err) => {
+        console.log(11, err);
       });
-    });
   });
 };
 export default playChat;

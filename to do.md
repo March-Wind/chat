@@ -10,3 +10,5 @@
 
 1. 产业链图谱(内置了 ai)：https://vip.joinmap.ai/
 2. pdf 压缩和转移
+3. debugger 时，导致消息堆积在一起，无法 JSON.parse
+4. 处理发送来的空 msg 字符串。

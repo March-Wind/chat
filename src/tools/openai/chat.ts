@@ -41,6 +41,9 @@ class Chat extends IOpenAI {
         content: initOptions.system,
       },
     ];
+    // // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // // @ts-ignore
+    // global.history = this.history
     this.tokens = new Tokens({ model: initOptions.model });
     this.recordTokensCount(initOptions.system);
     Object.defineProperty(this, 'stream', {
@@ -82,7 +85,7 @@ class Chat extends IOpenAI {
       role: 'user',
       content: question,
     });
-
+    debugger;
     const answer = this.callOpenAi();
 
     answer
@@ -151,7 +154,7 @@ class Chat extends IOpenAI {
         this.history.push({
           role,
           content,
-          id,
+          // id,
         });
         this.recordTokensCount(content);
         return;
@@ -160,6 +163,7 @@ class Chat extends IOpenAI {
       if (finish_reason === 'stop' && lastMsg?.receiving) {
         lastMsg.content = lastMsg.receiving as string;
         delete lastMsg.receiving;
+        delete lastMsg.id;
         this.recordTokensCount(lastMsg.content);
         return;
       }
