@@ -4,7 +4,7 @@
  * @return {boolean}
  * @constructor
  */
-export const isArray = function (v: unknown): v is Array<unknown> {
+export const isArray = function <T = any>(v: unknown): v is Array<T> {
   return Object.prototype.toString.call(v) === '[object Array]';
 };
 /**
@@ -49,7 +49,7 @@ export const isNumber = function (v: unknown): v is number {
  * @return {boolean}
  * @constructor
  */
-export const isObject = function (v: unknown): v is NonArrayObject {
+export const isObject = function (v: unknown): v is Record<string, any> {
   return Object.prototype.toString.call(v) === '[object Object]';
 };
 /**

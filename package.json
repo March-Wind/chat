@@ -89,6 +89,7 @@
         "mongodb": "^5.2.0",
         "openai": "^3.2.1",
         "pdf-parse": "^1.1.1",
-        "socks-proxy-agent": "^7.0.0"
+        "socks-proxy-agent": "^7.0.0",
+        "ts-mixer": "^6.0.3"
     }
 }
