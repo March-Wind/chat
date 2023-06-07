@@ -8,7 +8,7 @@
         "build:js": "npm run clean:lib && tsc && tsc-alias",
         "build:prod": "webpack",
         "eslint": "eslint ./src --fix",
-        "dev:node": "pack2 --mode=dev:node -d",
+        "dev:node": "pack2 --mode=dev:node",
         "dev:node:debug": "pack2 --mode=dev:node -d",
         "dev:node:debug2": "node --inspect-brk  --loader ts-node/esm ./src/index.ts",
         "build:node": "pack2 --mode=build:node"
@@ -85,7 +85,6 @@
         "koa-bodyparser": "^4.4.0",
         "koa-sse-stream": "^0.2.0",
         "koa2-cors": "^2.0.6",
-        "langchain": "^0.0.49",
         "mongodb": "^5.2.0",
         "openai": "^3.2.1",
         "pdf-parse": "^1.1.1",
