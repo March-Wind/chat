@@ -1,13 +1,14 @@
 import IOpenAI from './base';
-import SocksProxyAgent from 'socks-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import Tokens from './tokens';
 import type { CreateChatCompletionResponse, ChatCompletionRequestMessage } from 'openai';
 import type { AxiosResponse } from 'axios';
 import type { IncomingMessage } from 'http';
 import type { Stream_CreateChatCompletionResponse } from './types';
-const httpsAgent = new SocksProxyAgent.SocksProxyAgent('socks5://127.0.0.1:1086');
+const httpsAgent = new SocksProxyAgent('socks5://127.0.0.1:1086');
 interface Props {
   model?: Tokens['model']; // 模型
+  // model?: string;
   system?: string; // 系统级别的设定和行为
   stream?: boolean; //是否是流式
 }

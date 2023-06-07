@@ -5,11 +5,12 @@ import {
   type TiktokenModel,
   // type TiktokenEncoding,
 } from '@dqbd/tiktoken';
-import Graphemer from 'graphemer';
+import _Graphemer from 'graphemer/lib/Graphemer';
 import BN from 'bignumber.js';
+const Graphemer: typeof _Graphemer = (_Graphemer as any).default || _Graphemer;
 
 const textDecoder = new TextDecoder();
-const graphemer = new ((Graphemer as any).default as unknown as typeof Graphemer)();
+const graphemer = new Graphemer();
 type TokenizerResponse = { text: string; tokens: { id: number; idx: number }[] }[];
 
 interface Props {

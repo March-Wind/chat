@@ -1,5 +1,5 @@
-import SocksProxyAgent from 'socks-proxy-agent';
-const httpsAgent = new SocksProxyAgent.SocksProxyAgent('socks5://127.0.0.1:1086');
+import { SocksProxyAgent } from 'socks-proxy-agent';
+const httpsAgent = new SocksProxyAgent('socks5://127.0.0.1:1086');
 import { AxiosResponse } from 'axios';
 import { PassThrough } from 'stream';
 import Router from '@koa/router';

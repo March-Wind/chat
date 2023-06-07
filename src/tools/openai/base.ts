@@ -1,8 +1,8 @@
 import { AxiosRequestConfig } from 'axios';
-import SocksProxyAgent from 'socks-proxy-agent';
+import { SocksProxyAgent } from 'socks-proxy-agent';
 import { OpenAIApi, Configuration } from 'openai';
 import { openai_key, proxy } from '../../env';
-const httpsAgent = proxy && new SocksProxyAgent.SocksProxyAgent(proxy);
+const httpsAgent = proxy && new SocksProxyAgent(proxy);
 class IOpenAI {
   openai: OpenAIApi;
   protected axiosRequestConfig: AxiosRequestConfig;
