@@ -79,3 +79,26 @@ console.log('开始监听');
 //   encoder.free();
 // }
 // main();
+
+// import wasm from "@dqbd/tiktoken/lite/tiktoken_bg.wasm";
+// import model from "@dqbd/tiktoken/encoders/cl100k_base.json";
+// import { init, Tiktoken } from "@dqbd/tiktoken/lite/init";
+
+// export const config = { runtime: "edge" };
+
+// async function as() {
+//   await init((imports) => WebAssembly.instantiate(wasm, imports));
+
+//   const encoding = new Tiktoken(
+//     model.bpe_ranks,
+//     model.special_tokens,
+//     model.pat_str
+//   );
+
+//   const tokens = encoding.encode("hello world");
+//   encoding.free();
+
+//   console.log(11, tokens)
+// }
+
+// as();

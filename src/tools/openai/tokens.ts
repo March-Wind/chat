@@ -1,3 +1,4 @@
+// import tiktoken from '@dqbd/tiktoken';
 import {
   encoding_for_model,
   // get_encoding,
@@ -5,6 +6,8 @@ import {
   type TiktokenModel,
   // type TiktokenEncoding,
 } from '@dqbd/tiktoken';
+// import type { Tiktoken, TiktokenModel } from '@dqbd/tiktoken';
+// const { encoding_for_model } = tiktoken;
 import _Graphemer from 'graphemer/lib/Graphemer';
 import BN from 'bignumber.js';
 const Graphemer: typeof _Graphemer = (_Graphemer as any).default || _Graphemer;
