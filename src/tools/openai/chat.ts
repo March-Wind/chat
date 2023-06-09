@@ -1,11 +1,12 @@
 import IOpenAI from './base';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import Tokens from './tokens';
+import { proxy } from '../../env';
 import type { CreateChatCompletionResponse, ChatCompletionRequestMessage } from 'openai';
 import type { AxiosResponse } from 'axios';
 import type { IncomingMessage } from 'http';
 import type { Stream_CreateChatCompletionResponse } from './types';
-const httpsAgent = new SocksProxyAgent('socks5://127.0.0.1:1086');
+const agent = proxy ? new SocksProxyAgent(proxy) : undefined;
 interface Props {
   model?: Tokens['model']; // 模型
   // model?: string;
@@ -71,8 +72,8 @@ class Chat extends IOpenAI {
         temperature: 0.2,
       },
       {
-        httpsAgent,
-        httpAgent: httpsAgent,
+        httpsAgent: agent,
+        httpAgent: agent,
         // ...(stream ? { responseType: 'stream' } : {}),
         responseType: 'stream',
         proxy: false,
