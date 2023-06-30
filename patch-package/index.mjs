@@ -9,7 +9,6 @@ const run = () => {
   newJson.main = './tiktoken.js';
   newJson.type = 'module';
   delete newJson.exports;
-  debugger
   fs.writeFileSync(_path, JSON.stringify(newJson, null, 2), 'utf8');
 }
 

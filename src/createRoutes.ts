@@ -1,8 +1,11 @@
 import Router from '@koa/router';
-import getAnswer from './api/get-answer';
+// import getAnswer from './api/get-answer';
 import playChat from './api/chat';
+import registerUser from './api/register';
+import loginUser from './api/login';
 const router = new Router();
 // getAnswer(router);
 playChat(router);
-
+registerUser(router);
+loginUser(router);
 export default router;

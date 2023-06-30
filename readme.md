@@ -3,7 +3,7 @@
 > 接入 openai api 的项目
 
 ## start
-  1. 在终端使用`export OPENAI_API_KEY=sk-XXXXXXX`
+  1. 在终端使用`export OPENAI_API_KEY=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`
   2. 启动项目`npm run dev:node`
 
 ## 备注
@@ -20,3 +20,9 @@
         const wasmModule = new WebAssembly.Module(bytes);
         const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
       ```
+
+
+      node /www/wwwroot/chat/build_node/main.cjs
+
+      production
+      development

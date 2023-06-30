@@ -3,5 +3,5 @@
 /dist
 .DS_Store
 /pack
-mongodb
-gpt论文研究
+/mongodb
+/gpt论文研究

@@ -4,16 +4,27 @@ import Koa from 'koa';
 import cors from 'koa2-cors';
 import bodyParser from 'koa-bodyparser';
 import router from './createRoutes';
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore
-// import sseStream from 'koa-sse-stream'
-// import cors from './tools/cors';
+// import { getClientIP } from './tools/koa/middleware/get-client-ip';
+
+// 洋葱圈模型，如果每个组件都 await next();就能保证洋葱圈顺序，如果想做非阻塞的程序，就不要await就行了。参考/chat的api里请求外部接口就是异步的，非阻塞的。可能中间件都走完了，请求外部接口还没返回，这样就不影响后面的中间件执行了。
 const app = new Koa();
-// debugger
 app.use(
   cors({
     // withCredentials为true时，Access-Control-Allow-Origin不能为*，需要指定具体的域名
-    origin: 'http://127.0.0.1:4000', // 允许所有来源的请求访问
+    origin: (ctx) => {
+      // const clientIp = getClientIP(ctx);
+      // 区分本地和线上环境process.env.NODE_ENV === 'development'
+      if (ctx.request.headers.origin === 'http://localhost:4000') {
+        // return true;
+        return 'http://localhost:4000';
+      }
+      if (ctx.request.headers.origin === 'http://127.0.0.1:4000') {
+        // return true;
+        return 'http://127.0.0.1:4000';
+      }
+      return false;
+    }, // 允许所有来源的请求访问
+    // origin: 'http://localhost:4000',
     // origin: '*',  // 允许所有来源的请求访问
     maxAge: 86400, // 有效期为1天
     credentials: true, // 允许发送cookie
@@ -21,10 +32,7 @@ app.use(
     allowHeaders: ['Content-Type', 'Authorization', 'Accept'], // 设置允许的HTTP请求头
   }),
 );
-// app.use(sseStream({
-//   maxClients: 5000,
-//   pingInterval: 30000
-// }));
+
 app.use(bodyParser());
 app.use(router.routes()).use(router.allowedMethods());
 

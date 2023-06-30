@@ -1,3 +1,50 @@
+
+1. 查看配置文件配置：nginx -t
+    - 宝塔安装的nginx的conf文件默认是在：/www/server/nginx/conf/nginx.conf
+    - 证书安装路径：/www/server/panel/vhost/cert
+
+2. 增加SSL证书
+  - 步骤参考：https://cloud.tencent.com/document/product/400/35244
+  - 配置
+        ```
+        server {
+            listen 80;
+            server_name qunyangbang.cn www.qunyangbang.cn;
+            root /www/wwwroot;
+            # 重定向所有 HTTP 请求到 HTTPS
+                return 301 https://$server_name$request_uri;
+
+        }
+            server {
+                #SSL 默认访问端口号为 443
+                listen 443 ssl; 
+                #请填写绑定证书的域名
+                server_name cloud.tencent.com; 
+                #请填写证书文件的相对路径或绝对路径
+                ssl_certificate /www/server/panel/vhost/cert/qunyangbang.cn_bundle.crt; 
+                #请填写私钥文件的相对路径或绝对路径
+                ssl_certificate_key /www/server/panel/vhost/cert/qunyangbang.cn.key; 
+                ssl_session_timeout 5m;
+                #请按照以下协议配置
+                ssl_protocols TLSv1.2 TLSv1.3; 
+                #请按照以下套件配置，配置加密套件，写法遵循 openssl 标准。
+                ssl_ciphers ECDHE-RSA-AES128-GCM-SHA256:HIGH:!aNULL:!MD5:!RC4:!DHE; 
+                ssl_prefer_server_ciphers on;
+                location / {
+                    root /www/wwwroot;
+                    index  index.html index.htm;
+                }
+                    # chat项目的后端
+            location ^~ /chat-node/ { 
+                proxy_pass http://127.0.0.1:4001/;
+            }
+            }
+    ```
+
+
+
+
+## 以下是log的格式
 user  www www;
 worker_processes auto;
 error_log  /www/wwwlogs/nginx_error.log  crit;

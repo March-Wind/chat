@@ -87,9 +87,7 @@ class Chat extends IOpenAI {
       role: 'user',
       content: question,
     });
-    debugger;
     const answer = this.callOpenAi();
-
     answer
       .then((resp) => {
         this.receivingAnswer(resp, this.pushHistoryMsg.bind(this));
@@ -133,8 +131,6 @@ class Chat extends IOpenAI {
     }
     // }).catch((err) => {
     //   console.log(err)
-    //   debugger
-
     // })
   }
   pushHistoryMsg(responseJsons: CreateChatCompletionResponse[]) {
