@@ -1,18 +1,10 @@
-// import MG from "../base";
-// import type { MGOptions } from "../base";
-import mongoose, { Schema, model } from 'mongoose';
-// import awaitWrap from "../../await-wrap";
-// import { Mixin } from 'ts-mixer';
+import { Schema } from 'mongoose';
+import Elementary, { preCheckConnection } from '../elementary';
 import type { SchemaParamType } from '../types';
 import type { UpdatedInterface } from '../../../tool';
-// const { Schema, Document } = mongoose;
-export interface baseInfoOptions {
-  uri: string;
-}
-// export type BaseInfoSchema = Omit<SchemaParamType<BaseInfo['schema']>, 'uuid'> & { uuid: string };
+import type { Model } from 'mongoose';
 export type BaseInfoSchema = SchemaParamType<BaseInfo['schema']>;
 
-const collectionName = 'baseInfo';
 const _schema = new Schema({
   // schame模式定义的类型校验在set之前校验
   uuid: {
@@ -87,73 +79,45 @@ const _schema = new Schema({
   },
 });
 // 上升到程序里是唯一的，保证不重复创建模型
-const _model = model(collectionName, _schema);
+// export const _model = model(collectionName, _schema);
+
 /**
  * 用户数据库之基础信息
  *
  * @class UserDb
  * @extends {MG}
  */
-class BaseInfo {
-  protected dbName = 'users'; // 数据库名
-  protected collectionName = collectionName; // 集合名字
-  options: baseInfoOptions;
-  private schema = _schema;
-  private model = _model;
-  constructor(options?: Partial<baseInfoOptions>) {
-    Object.defineProperty(this, 'dbName', {
-      value: this.dbName,
-      writable: false,
-      enumerable: false,
-      configurable: false,
-    });
-    Object.defineProperty(this, 'collectionName', {
-      value: this.collectionName,
-      writable: false,
-      enumerable: false,
-      configurable: false,
-    });
-
-    const defaultOptions: baseInfoOptions = {
-      uri: `mongodb://localhost:27017/${this.dbName}`,
+class BaseInfo extends Elementary {
+  protected schema = _schema;
+  protected model: Model<BaseInfoSchema>;
+  constructor() {
+    const dbName = 'users';
+    const collectionName = 'base-infos';
+    const parentOptions = {
+      uri: `mongodb://localhost:27017/${dbName}`,
+      collectionName,
+      dbName,
     };
-    const _options: baseInfoOptions = {
-      ...defaultOptions,
-      ...options,
-    };
-    this.options = _options;
+    super(parentOptions);
   }
-  async connect() {
-    const { uri } = this.options;
-    await mongoose.connect(uri);
-  }
-  // 检查连接状态
-  async checkConnect() {
-    // to experiment
-    console.log(mongoose.connections);
-    console.log(mongoose.connection.models);
-    const { readyState } = mongoose.connection;
-    if (readyState === 0 || readyState === 99) {
-      await this.connect();
-    }
-  }
-
   // 根据邮箱查询用户是否存在
+  @preCheckConnection
   async searchUserByEmail(email: string, pick: (keyof BaseInfoSchema)[] = ['email', 'name']) {
     const { model } = this;
-    await this.checkConnect();
     const projection: Partial<UpdatedInterface<BaseInfoSchema, number>> = {};
     pick.forEach((item) => {
       projection[item] = 1;
     });
-    return await model.findOne({ email }, projection);
+    return await model.findOne({ email });
   }
   // 查看数据库有多少条数据
+  @preCheckConnection
   async countUser() {
     const { model } = this;
     return await model.countDocuments();
   }
   // 将注册的用户放进数据库
+  @preCheckConnection
   async insertUser(user: BaseInfoSchema) {
     const { model } = this;
     const { email, uuid, password, name } = user;
@@ -166,8 +130,21 @@ class BaseInfo {
     const data = new model(_baseInfo);
     return await data.save();
   }
-  async close() {
-    await mongoose.connection.close();
+  @preCheckConnection
+  checkParamsType(user: BaseInfoSchema, fields?: string[]) {
+    const { model } = this;
+    const validate = new model(user);
+    if (fields) {
+      for (let i = 0; i < fields.length; i++) {
+        const field = fields[i];
+        const err = validate.validateSync(field);
+        if (err) {
+          return err;
+        }
+      }
+    } else {
+      return validate.validateSync();
+    }
   }
 }
 

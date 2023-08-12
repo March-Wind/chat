@@ -10,6 +10,7 @@ const config: JestConfigWithTsJest = {
   // [...]
   roots: ['<rootDir>/__tests__'],
   preset: 'ts-jest/presets/default-esm', // or other ESM presets
+  testEnvironment: 'node',
   extensionsToTreatAsEsm: ['.ts'],
   transform: {
     ...tsjPreset.transform,
@@ -18,14 +19,15 @@ const config: JestConfigWithTsJest = {
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   // "testRegex": "/__tests__/.*\\.test\\.(ts|tsx)$",
-  globals: {
-    'ts-jest': {
-      useESM: true,
-      // ts-jest configuration goes here and your IDE will suggest which configs when typing
-    },
-  },
+  // globals: {
+  //   'ts-jest': {
+  //     useESM: true,
+  //     // ts-jest configuration goes here and your IDE will suggest which configs when typing
+  //   },
+  // },
   moduleNameMapper: {
     '^(\\.{1,2}/.*)\\.js$': '$1',
+    '^@/(.*)$': '<rootDir>/src/$1',
     // ...pathsToModuleNameMapper(compilerOptions.paths /*, { prefix: '<rootDir>/' } */) // 跟tsconfig的paths一致
   },
 };

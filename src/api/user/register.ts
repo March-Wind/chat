@@ -1,13 +1,24 @@
 import Router from '@koa/router';
-import UserBase from '../tools/mongodb/users/baseInfo';
-import Fingerprint from '../tools/mongodb/users/fingerprint';
-import awaitWrap from '../tools/await-wrap';
+import UserBase from '../../tools/mongodb/users/baseInfo';
+import Fingerprint from '../../tools/mongodb/users/fingerprint';
+import awaitWrap from '../../tools/await-wrap';
 import { v4 as uuidV4 } from 'uuid';
-import { successStatus, failStatus } from '../constant';
-import type { BaseInfoSchema } from '../tools/mongodb/users/baseInfo';
-import type { FingerprintSchema } from '../tools/mongodb/users/fingerprint';
+import { successStatus, failStatus } from '../../constant';
+import type { BaseInfoSchema } from '../../tools/mongodb/users/baseInfo';
+import type { FingerprintSchema } from '../../tools/mongodb/users/fingerprint';
 type UserSchema = BaseInfoSchema & FingerprintSchema;
+// 检验类型以防止noSQL注入
+const validateType = (user: UserSchema) => {
+  const userBase = new UserBase();
+  return userBase.checkParamsType(user);
+};
+
 const process = async (user: UserSchema) => {
+  const typeErr = validateType(user);
+  if (typeErr) {
+    return Promise.reject('参数不合法!');
+  }
+
   const userBase = new UserBase();
 
   // 检查用户名是否已经存在
@@ -47,6 +58,7 @@ const registerUser = async (router: Router) => {
         status: failStatus,
         msg: err,
       };
+      ctx.status = 400;
     } else {
       ctx.body = {
         status: successStatus,
