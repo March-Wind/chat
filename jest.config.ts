@@ -8,6 +8,7 @@ import { defaults as tsjPreset } from 'ts-jest/presets';
 const config: JestConfigWithTsJest = {
   // automock: true,
   // [...]
+
   roots: ['<rootDir>/__tests__'],
   preset: 'ts-jest/presets/default-esm', // or other ESM presets
   testEnvironment: 'node',
@@ -30,6 +31,7 @@ const config: JestConfigWithTsJest = {
     '^@/(.*)$': '<rootDir>/src/$1',
     // ...pathsToModuleNameMapper(compilerOptions.paths /*, { prefix: '<rootDir>/' } */) // 跟tsconfig的paths一致
   },
+  testTimeout: 10000, // 设置为 10 秒
 };
 export default config;
 

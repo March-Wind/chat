@@ -1,11 +1,11 @@
 import type Router from '@koa/router';
-import Chat from '../../tools/openai/chat';
-import HistoryMessage from '../../tools/mongodb/users/history-message';
-import { isString } from '../../tools/variable-type';
-import awaitWrap from '../../tools/await-wrap';
-import verifyAuth from '../../tools/koa/middleware/verify-auth';
-import { failStatus, successStatus } from '../../constant';
-import { generateTopic } from '../../prompt';
+import Chat from '../../../tools/openai/chat';
+import HistoryMessage from '../../../tools/mongodb/users/history-message';
+import { isString } from '../../../tools/variable-type';
+import awaitWrap from '../../../tools/await-wrap';
+import verifyAuth from '../../../tools/koa/middleware/verify-auth';
+import { failStatus, successStatus } from '../../../constant';
+import { generateTopic } from '../../../prompt';
 
 const checkAuth = verifyAuth();
 
@@ -46,13 +46,16 @@ const createTopicByTopicId = (router: Router) => {
     }
 
     // 由于第一个是系统设置，所以不是用户对话的过程，不参与生成主题
-    const prompt = generateTopic(data![1]!.content, data![2]!.content.slice(0, 100));
+    const prompt = generateTopic(data![0]!.content, data![1]!.content.slice(0, 100));
     const chat = new Chat({ stream: false });
     await new Promise((resolve) => {
       chat
         .ask(prompt)
         .then((resp) => {
           chat.receivingAnswer(resp, (data) => {
+            if (data === 'close' || data === 'end') {
+              return;
+            }
             const content = data[0];
             const title = content?.choices[0]?.message?.content || '';
             historyDb

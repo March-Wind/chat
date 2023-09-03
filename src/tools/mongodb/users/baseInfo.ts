@@ -1,5 +1,6 @@
 import { Schema } from 'mongoose';
-import Elementary, { preCheckConnection } from '../elementary';
+import Elementary, { ElementaryOptions, preCheckConnection } from '../elementary';
+import { mongodb_uri } from '../../../env';
 import type { SchemaParamType } from '../types';
 import type { UpdatedInterface } from '../../../tool';
 import type { Model } from 'mongoose';
@@ -81,6 +82,8 @@ const _schema = new Schema({
 // 上升到程序里是唯一的，保证不重复创建模型
 // export const _model = model(collectionName, _schema);
 
+interface BaseInfoParams extends Partial<ElementaryOptions> {}
+
 /**
  * 用户数据库之基础信息
  *
@@ -90,15 +93,20 @@ const _schema = new Schema({
 class BaseInfo extends Elementary {
   protected schema = _schema;
   protected model: Model<BaseInfoSchema>;
-  constructor() {
+  constructor(options: BaseInfoParams = {}) {
     const dbName = 'users';
     const collectionName = 'base-infos';
-    const parentOptions = {
-      uri: `mongodb://localhost:27017/${dbName}`,
+    const defaultParentOptions = {
+      uri: mongodb_uri,
       collectionName,
       dbName,
     };
-    super(parentOptions);
+    const parentOptions = options;
+    const newParentOptions = {
+      ...defaultParentOptions,
+      ...parentOptions,
+    };
+    super(newParentOptions);
   }
   // 根据邮箱查询用户是否存在
   @preCheckConnection

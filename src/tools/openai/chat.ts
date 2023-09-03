@@ -12,6 +12,8 @@ export interface Props {
   // model?: string;
   stream?: boolean; //是否是流式
   context?: ChatCompletionRequestMessage[]; // 上下文
+  temperature?: number; // 回答的温度，也是答案概率程度
+  frequency_penalty?: number; // 生成的词，会进行去重处理
 }
 
 // 回答格式
@@ -26,12 +28,16 @@ class Chat extends IOpenAI {
   private stream: boolean;
   private context: ChatCompletionRequestMessage[]; // 上下文
   private askContent: ChatCompletionRequestMessage[]; // 提问内容
+  private temperature: number;
+  private resp: AnswerFormat | undefined = undefined;
   constructor(props?: Props) {
     super();
     const defaultOptions: Required<Props> = {
       stream: true,
       model: 'gpt-3.5-turbo',
       context: [],
+      temperature: 0.2,
+      frequency_penalty: 0,
     };
     const initOptions = {
       ...defaultOptions,
@@ -42,17 +48,31 @@ class Chat extends IOpenAI {
 
     this.tokens = new Tokens({ model: initOptions.model });
     // this.recordTokensCount(initOptions.system);
-    Object.defineProperty(this, 'stream', {
-      enumerable: true,
-      configurable: false,
-      writable: false,
-      value: initOptions.stream,
-    });
-    Object.defineProperty(this, 'model', {
-      enumerable: true,
-      configurable: false,
-      writable: false,
-      value: initOptions.model,
+    Object.defineProperties(this, {
+      stream: {
+        enumerable: true,
+        configurable: false,
+        writable: false,
+        value: initOptions.stream,
+      },
+      model: {
+        enumerable: true,
+        configurable: false,
+        writable: false,
+        value: initOptions.model,
+      },
+      temperature: {
+        enumerable: true,
+        configurable: false,
+        writable: false,
+        value: initOptions.temperature,
+      },
+      frequency_penalty: {
+        enumerable: true,
+        configurable: false,
+        writable: false,
+        value: initOptions.frequency_penalty,
+      },
     });
   }
   callOpenAi(): Promise<AnswerFormat> {
@@ -63,7 +83,7 @@ class Chat extends IOpenAI {
         model: modal,
         messages: this.askContent,
         stream,
-        temperature: 0,
+        temperature: this.temperature,
       },
       {
         httpsAgent: agent,
@@ -93,8 +113,18 @@ class Chat extends IOpenAI {
     question && this.recordTokensCount(question);
     return answer;
   }
-  receivingAnswer(resp: AnswerFormat, cb: (response: CreateChatCompletionResponse[]) => void) {
+  close() {
+    this.resp?.data.destroy();
+    this.answer.content = this.answer.receiving as string;
+    this.resp = undefined;
+  }
+  receivingAnswer(
+    resp: AnswerFormat,
+    cb: (response: CreateChatCompletionResponse[] | 'end' | 'close') => void,
+    errCb?: (err: any) => void,
+  ) {
     const that = this;
+    this.resp = resp;
     // answerPromise.then((resp) => {
     const contentType: AnswerFormat['headers']['Content-Type'] = resp.headers['content-type'] || 'text/event-stream';
 
@@ -115,19 +145,43 @@ class Chat extends IOpenAI {
           const response = that.parseStreamMsg(data);
           cb(response);
         });
+        (resp as Resp<ContentType>).data.on('error', (err) => {
+          errCb?.(err);
+        });
+        (resp as Resp<ContentType>).data.on('end', () => {
+          cb('end');
+        });
+        (resp as Resp<ContentType>).data.on('close', () => {
+          cb('close');
+        });
         break;
       }
       case 'application/json': {
         type ContentType = typeof contentType;
         // cb([(resp as Resp<ContentType>).data]);
+        let result = '';
         (resp as Resp<ContentType>).data.on('data', (data: Buffer) => {
           // const response = that.parseStreamMsg(data);
           try {
-            cb([JSON.parse(data.toString())]);
+            result += data.toString();
           } catch (error) {
             console.log(error);
           }
         });
+        (resp as Resp<ContentType>).data.on('end', () => {
+          try {
+            cb([JSON.parse(result)]);
+          } catch (error) {
+            console.log(error);
+          }
+        });
+        (resp as Resp<ContentType>).data.on('error', (err) => {
+          errCb?.(err);
+        });
+        (resp as Resp<ContentType>).data.on('close', () => {
+          cb('close');
+        });
+
         break;
       }
     }
@@ -135,7 +189,10 @@ class Chat extends IOpenAI {
     //   console.log(err)
     // })
   }
-  pushHistoryMsg(responseJsons: CreateChatCompletionResponse[]) {
+  pushHistoryMsg(responseJsons: CreateChatCompletionResponse[] | 'end' | 'close') {
+    if (responseJsons === 'end' || responseJsons === 'close') {
+      return;
+    }
     responseJsons.forEach((json) => {
       const answer = this.answer;
       const {
@@ -148,7 +205,7 @@ class Chat extends IOpenAI {
         // index,
         finish_reason,
       } = choices[0]!; // 流式返回类型需要做的处理
-      const { role, content } = message!;
+      const { role, content = '' } = message!;
       // json形式返回
       if (finish_reason === 'stop' && !answer?.receiving) {
         this.answer = {

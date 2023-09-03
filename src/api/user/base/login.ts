@@ -1,11 +1,11 @@
 import jwt from 'jsonwebtoken';
 import Router from '@koa/router';
-import UserBase from '../../tools/mongodb/users/baseInfo';
-import type { BaseInfoSchema } from '../../tools/mongodb/users/baseInfo';
-import awaitWrap from '../../tools/await-wrap';
-import { secret_key } from '../../env';
-import { successStatus, failStatus } from '../../constant';
-import { isString } from '../../tools/variable-type';
+import UserBase from '../../../tools/mongodb/users/baseInfo';
+import type { BaseInfoSchema } from '../../../tools/mongodb/users/baseInfo';
+import awaitWrap from '../../../tools/await-wrap';
+import { secret_key } from '../../../env';
+import { successStatus, failStatus } from '../../../constant';
+import { isString } from '../../../tools/variable-type';
 
 import type { Secret } from 'jsonwebtoken';
 type Body = Pick<BaseInfoSchema, 'email' | 'password'>;
@@ -52,9 +52,13 @@ const loginUser = (router: Router) => {
       };
       ctx.status = 400;
     } else {
-      const token = jwt.sign({ email: body.email, name: data!.name, uuid: data!.uuid }, secret_key as Secret, {
-        expiresIn: '1h',
-      });
+      const token = jwt.sign(
+        { email: body.email, name: data!.name, uuid: data!.uuid, id: data!.id },
+        secret_key as Secret,
+        {
+          expiresIn: '1h',
+        },
+      );
       ctx.body = {
         status: successStatus,
         msg: '登录成功',

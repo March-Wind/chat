@@ -1,11 +1,11 @@
 import Router from '@koa/router';
-import UserBase from '../../tools/mongodb/users/baseInfo';
-import Fingerprint from '../../tools/mongodb/users/fingerprint';
-import awaitWrap from '../../tools/await-wrap';
+import UserBase from '../../../tools/mongodb/users/baseInfo';
+import Fingerprint from '../../../tools/mongodb/users/fingerprint';
+import awaitWrap from '../../../tools/await-wrap';
 import { v4 as uuidV4 } from 'uuid';
-import { successStatus, failStatus } from '../../constant';
-import type { BaseInfoSchema } from '../../tools/mongodb/users/baseInfo';
-import type { FingerprintSchema } from '../../tools/mongodb/users/fingerprint';
+import { successStatus, failStatus } from '../../../constant';
+import type { BaseInfoSchema } from '../../../tools/mongodb/users/baseInfo';
+import type { FingerprintSchema } from '../../../tools/mongodb/users/fingerprint';
 type UserSchema = BaseInfoSchema & FingerprintSchema;
 // 检验类型以防止noSQL注入
 const validateType = (user: UserSchema) => {

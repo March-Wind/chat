@@ -1,13 +1,58 @@
-// import dotenv from 'dotenv';
-// dotenv.config()
 import Koa from 'koa';
 import cors from 'koa2-cors';
 import bodyParser from 'koa-bodyparser';
 import router from './createRoutes';
+// import session from 'koa-session'
+// import jwt from 'jsonwebtoken';
+import { userTemporaryStore } from './tools/mongodb/setting/user-temporary';
+// import SessionStore from './tools/mongodb/setting/session';
+// import { v4 as uuidV4 } from 'uuid';
+// import { isObject } from './tools/variable-type';
 // import { getClientIP } from './tools/koa/middleware/get-client-ip';
 
 // 洋葱圈模型，如果每个组件都 await next();就能保证洋葱圈顺序，如果想做非阻塞的程序，就不要await就行了。参考/chat的api里请求外部接口就是异步的，非阻塞的。可能中间件都走完了，请求外部接口还没返回，这样就不影响后面的中间件执行了。
 const app = new Koa();
+// app.keys = ['wuli'];
+// app.use(session({
+//   store: new SessionStore({
+//     dbName: 'settings',
+//     collectionName: 'sessions',
+//     uri: 'mongodb://localhost:27017/settings'
+//   }),
+//   externalKey: {
+//     // get: async (ctx) => {
+//     get: (ctx) => {
+//       const authorization = ctx.request.header['authorization'];
+//       if (!authorization) {
+//         return '';
+//       }
+//       const token = authorization.replace('Bearer ', '');
+//       try {
+//         const userInfo = jwt.decode(token);
+//         if (isObject(userInfo)) {
+//           return userInfo.id
+//         } else {
+//           return ''
+//         }
+//       } catch (error) {
+//         return ''
+//       }
+//       // const session = await app.sessionStore.get(key);
+//       // return session ? session.externalKey : null;
+//     },
+//     // set: async (key, externalKey) => {
+//     set: (ctx, value) => {
+//       console.log(ctx, value)
+//       debugger
+//       // const session = await app.sessionStore.get(key);
+//       // if (session) {
+//       //   session.externalKey = externalKey;
+//       //   await app.sessionStore.set(key, session);
+//       // }
+//     },
+//   },
+// }, app));
+
 app.use(
   cors({
     // withCredentials为true时，Access-Control-Allow-Origin不能为*，需要指定具体的域名
@@ -33,16 +78,16 @@ app.use(
     exposeHeaders: ['Access_Token'], // 暴露给js访问的headers
   }),
 );
-// app.use(async (ctx, next) => {
-//   ctx.set('Access-Control-Allow-Headers', 'Access_Token,Keep-Alive,Date')
-//   ctx.set('Access-Control-Expose-Header', 'Access_Token')
-
-//   await next();
-// })
+app.use(async (ctx, next) => {
+  ctx.set('Access-Control-Allow-Headers', 'Access_Token,Keep-Alive,Date');
+  ctx.set('Access-Control-Expose-Header', 'Access_Token');
+  await next();
+});
+app.use(userTemporaryStore(app));
 app.use(bodyParser());
 app.use(router.routes()).use(router.allowedMethods());
 app.listen(4001);
-console.log('开始监听');
+// console.log('开始监听');
 // console.log(222, process.env.SOCKS_PROCY)
 // import path from 'path';
 // import { parsePDF } from './tools/parse-pdf';
@@ -115,58 +160,3 @@ console.log('开始监听');
 // }
 
 // as();
-
-// import HistoryMessage from "./tools/mongodb/users/history-message";
-
-// const uuid = '44fe00b3-1214-4294-813c-3c1d4046fbab';
-
-// const historyDb = new HistoryMessage({ uuid });
-// debugger
-// // const data = await historyDb.addTopic({ messages: [{ role: 'user', content: '1' }] })
-// // const id = '64d3344d46c84cc4b3ec3a22';
-// // await historyDb.pushMessage(id, { role: 'user', content: '2' })
-// // await historyDb.pushMessage(id, { role: 'user', content: '3' })
-// // await historyDb.pushMessage(id, { role: 'user', content: '4' })
-// // await historyDb.pushMessage(id, { role: 'user', content: '5' })
-// // await historyDb.pushMessage(id, { role: 'user', content: '6' })
-// // const data = await historyDb.replaceMessages('64d3345f74f3ad7c10c42db0', { role: 'user', content: 'replace' }, undefined, 1)
-// // const data = await historyDb.deleteTopic('64d1ad7cdf025f1ec909261b');
-// const data = await historyDb.clearTopics()
-// console.log(11, data);
-// debugger
-
-// import Prompt from "./tools/mongodb/setting/prompt";
-
-// const promptDb = new Prompt();
-
-// // promptDb.insertOne({
-// //   "icon": "1f4d5",
-// //   "name": "小红书写手",
-// //   "content": "你是小红书爆款写作专家，请你用以下步骤来进行创作，首先产出5个标题（含适当的emoji表情），其次产出1个正文（每一个段落含有适当的emoji表情，文末有合适的tag标签）\n\n    一、在小红书标题方面，你会以下技能：\n    1. 采用二极管标题法进行创作\n    2. 你善于使用标题吸引人的特点\n    3. 你使用爆款关键词，写标题时，从这个列表中随机选1-2个\n    4. 你了解小红书平台的标题特性\n    5. 你懂得创作的规则\n\n    二、在小红书正文方面，你会以下技能：\n    1. 写作风格\n    2. 写作开篇方法\n    3. 文本结构\n    4. 互动引导方法\n    5. 一些小技巧\n    6. 爆炸词\n    7. 从你生成的稿子中，抽取3-6个seo关键词，生成#标签并放在文章最后\n    8. 文章的每句话都尽量口语化、简短\n    9. 在每段话的开头使用表情符号，在每段话的结尾使用表情符号，在每段话的中间插入表情符号\n\n    三、结合我给你输入的信息，以及你掌握的标题和正文的技巧，产出内容。请按照如下格式输出内容，只需要格式描述的部分，如果产生其他内容则不输出：\n    一. 标题\n    [标题1到标题5]\n    [换行]\n    二. 正文\n    [正文]\n    标签：[标签]"
-// // })
-
-// const data = await promptDb.queryPrompts();
-// const data2 = data.map(item => {
-//   return item.toObject({
-//     getters: true,
-//     virtuals: true,
-//     versionKey: false,
-//     transform(...arg) {
-//       const ret = arg[1];
-//       delete ret._id;
-//       return ret;
-//     },
-//   })
-// })
-// console.log(data2)
-// debugger
-
-// import BaseInfo from "./tools/mongodb/users/baseInfo";
-
-// const users = new BaseInfo()
-
-// // const data = await users.searchUserByEmail("zhiyang1.liu@ximalaya.com")
-
-// const data = await users.countUser()
-
-// console.log(data);

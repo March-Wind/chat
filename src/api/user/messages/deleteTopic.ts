@@ -1,9 +1,9 @@
 import Router from '@koa/router';
-import verifyAuth from '../../tools/koa/middleware/verify-auth';
-import HistoryMessage from '../../tools/mongodb/users/history-message';
-import { failStatus, successStatus } from '../../constant';
-import awaitWrap from '../../tools/await-wrap';
-import { isString } from '../../tools/variable-type';
+import verifyAuth from '../../../tools/koa/middleware/verify-auth';
+import HistoryMessage from '../../../tools/mongodb/users/history-message';
+import { failStatus, successStatus } from '../../../constant';
+import awaitWrap from '../../../tools/await-wrap';
+import { isString } from '../../../tools/variable-type';
 interface Body {
   topicId: string;
 }

@@ -4,6 +4,8 @@
 
 ## start
 
+<!-- export OPENAI_API_KEY=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 -->
+
 1. 在终端使用`export OPENAI_API_KEY=sk-XXX`
 2. 启动项目`npm run dev:node`
 

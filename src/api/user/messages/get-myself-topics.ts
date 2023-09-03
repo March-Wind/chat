@@ -1,8 +1,8 @@
 import Router from '@koa/router';
-import verifyAuth from '../../tools/koa/middleware/verify-auth';
-import HistoryMessage from '../../tools/mongodb/users/history-message';
-import { failStatus, successStatus } from '../../constant';
-import awaitWrap from '../../tools/await-wrap';
+import verifyAuth from '../../../tools/koa/middleware/verify-auth';
+import HistoryMessage from '../../../tools/mongodb/users/history-message';
+import { failStatus, successStatus } from '../../../constant';
+import awaitWrap from '../../../tools/await-wrap';
 
 const checkAuth = verifyAuth();
 const getMyselfTopics = (router: Router) => {

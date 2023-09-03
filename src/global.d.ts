@@ -6,6 +6,7 @@ declare global {
       // [key: string]: string | undefined;
       SECRET_KEY: string;
       OPENAI_API_KEY: string;
+      MONGODB_URI: string;
     }
   }
 }

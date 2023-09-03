@@ -2,7 +2,6 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import HistoryMessage from '@/tools/mongodb/users/history-message';
 import awaitWrap from '@/tools/await-wrap';
-import exp from 'constants';
 describe('操作topic的方法', () => {
   let mongoServer: MongoMemoryServer;
   let historyMessageDb: HistoryMessage;
@@ -13,9 +12,6 @@ describe('操作topic的方法', () => {
       uuid: 'test',
       uri: mongoUri,
     });
-    await historyMessageDb.connect();
-    // await mongoose.connect(mongoUri);
-    // db = mongoose.connection;
   });
 
   afterAll(async () => {
@@ -23,9 +19,11 @@ describe('操作topic的方法', () => {
     await mongoose.disconnect();
     await mongoServer.stop();
   });
-  it('step1: init historyMessage', async () => {
-    const [data, err] = await awaitWrap(
-      historyMessageDb.insertTopic({
+  it('step1: insert topic', async () => {
+    const _id = new mongoose.Types.ObjectId();
+    const [result, err] = await awaitWrap(
+      historyMessageDb.addTopic({
+        _id,
         title: '询问帮助',
         messages: [
           {
@@ -35,18 +33,11 @@ describe('操作topic的方法', () => {
         ],
       }),
     );
-    const actualData = data?.toObject({
-      getters: true,
-      virtuals: true,
-      versionKey: false,
-      transform(doc, ret, options) {
-        console.log(doc, ret, options);
-        delete ret._id;
-        delete ret.id;
-        return ret;
-      },
-    });
+    expect(err).toBeUndefined();
+    expect(result?.acknowledged).toBeTruthy();
+    expect(result?.upsertedCount).toBe(1);
 
+    const [data, err2] = await awaitWrap(historyMessageDb.queryTopicById(_id.toString()));
     const expectData = {
       uuid: 'test',
       topic: [
@@ -62,7 +53,7 @@ describe('操作topic的方法', () => {
         },
       ],
     };
-    expect(err).toBeUndefined();
+
     expect(actualData).toEqual(expectData);
   });
   it('step2: push topic', async () => {

@@ -1,5 +1,6 @@
 import { Schema } from 'mongoose';
-import Elementary, { preCheckConnection } from '../elementary';
+import Elementary, { ElementaryOptions, preCheckConnection } from '../elementary';
+import { mongodb_uri } from '../../../env';
 import type { BuiltinComponents } from '@fingerprintjs/fingerprintjs';
 import type { Model } from 'mongoose';
 // 用于获取Schema的参数ts类型
@@ -22,6 +23,8 @@ const _schema = new Schema({
   fingerComponents: {} as BuiltinComponents,
 });
 // const _model = model(collectionName, _schema);
+
+interface FingerprintParams extends Partial<ElementaryOptions> {}
 /**
  * 用户数据库之指纹
  *
@@ -31,13 +34,20 @@ const _schema = new Schema({
 class Fingerprint extends Elementary {
   protected schema = _schema;
   protected model: Model<FingerprintSchema>;
-  constructor() {
-    const defaultOptions = {
-      uri: 'mongodb://localhost:27017/fingerprints',
-      dbName: 'users',
-      collectionName: 'fingerprint',
+  constructor(options: FingerprintParams = {}) {
+    const dbName = 'users';
+    const collectionName = 'fingerprints';
+    const defaultParentOptions = {
+      uri: mongodb_uri,
+      collectionName,
+      dbName,
     };
-    super(defaultOptions);
+    const parentOptions = options;
+    const newParentOptions = {
+      ...defaultParentOptions,
+      ...parentOptions,
+    };
+    super(newParentOptions);
   }
   // 根据邮箱查询用户是否存在
   @preCheckConnection

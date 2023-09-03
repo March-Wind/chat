@@ -1,17 +1,19 @@
 import mongoose, { Schema, model } from 'mongoose';
 import Elementary, { preCheckConnection } from '../elementary';
 import awaitWrap from '../../await-wrap';
-import type { Document, Types, Model, UpdateWriteOpResult } from 'mongoose';
-
-interface Message {
-  role: 'user' | 'assistant' | 'system';
+import { mongodb_uri } from '../../../env';
+import type { Document, Types, Model, UpdateWriteOpResult, PipelineStage } from 'mongoose';
+import type { ChatCompletionRequestMessageRoleEnum } from 'openai';
+import type { ElementaryOptions } from '../elementary';
+export interface Message {
+  role: ChatCompletionRequestMessageRoleEnum;
   content: string;
 }
 export type MessageSchema = Message;
-const messageSchema = new Schema<Message>({
+export const messageSchema = new Schema<Message>({
   role: {
     type: String,
-    enum: ['user', 'assistant', 'system'],
+    enum: ['user', 'assistant', 'system', 'function'],
     required: true,
   },
   content: {
@@ -21,10 +23,17 @@ const messageSchema = new Schema<Message>({
 });
 
 interface Topic {
+  _id?: mongoose.Types.ObjectId;
   title?: string;
   createTime?: Date;
   lastUpdateTime?: Date;
   messages: Message[];
+  prePrompt?: {
+    id: string;
+    name: string;
+    avatar: string;
+    type: 'user' | 'system';
+  };
 }
 interface TopicSchema extends Topic {
   messages: Types.DocumentArray<Message>;
@@ -49,6 +58,25 @@ const topicSchema = new Schema<TopicSchema>({
     type: [messageSchema],
     required: true,
   },
+  prePrompt: {
+    id: {
+      type: String,
+      required: true,
+    },
+    name: {
+      type: String,
+      required: true,
+    },
+    avatar: {
+      type: String,
+      required: true,
+    },
+    type: {
+      type: String,
+      enum: ['user', 'system'],
+      required: true,
+    },
+  },
 });
 
 interface HistoryMessageT {
@@ -71,7 +99,7 @@ const historyScheme = new Schema<HistoryMessageSchema>({
   },
 });
 
-historyScheme.pre('findOneAndUpdate', function (next) {
+historyScheme.pre('updateOne', function (next) {
   const update = this.getUpdate();
   const query = this.getQuery();
   // to do 这里的类型怎么写
@@ -80,11 +108,11 @@ historyScheme.pre('findOneAndUpdate', function (next) {
   if (update && update['$push'] && update['$push']['topics.$.messages']) {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    const topicIndex = update['$push']['topics.$.messages']['$position'];
+    // const topicIndex = update['$push']['topics.$.messages']['$position'];
     const topicLastUpdateTime = new Date();
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    this.findOneAndUpdate(query, { $set: { [`topics.$.lastUpdateTime`]: topicLastUpdateTime } });
+    this.updateOne(query, { $set: { [`topics.$.lastUpdateTime`]: topicLastUpdateTime } });
     next();
   } else {
     next();
@@ -92,16 +120,7 @@ historyScheme.pre('findOneAndUpdate', function (next) {
 });
 
 const messageModel = model('message', messageSchema);
-// type DFG2 = SchemaParamType<SchemaParamTypeSix<typeof historyModel>>;
-// export type MessageSchema = SchemaParamType<typeof messageSchema>;
-// type TopicSchema = SchemaParamType<typeof topicSchema>;
-// export type TopicType = Part<TransformInterface<TopicSchema>, 'createTime' | "lastUpdateTime">;
-// 不知道为啥嵌套的多了，类型就变了 to do 类型对不上
-// type HistoryMessageSchema = SchemaParamType<typeof historyScheme>;
-// type HistoryMessageSchema = { uuid: string; topics: TopicSchema[] };
-// export type HistoryMessageType = TransformInterface<HistoryMessageSchema>;
-
-interface HistoryMessageParams {
+interface HistoryMessageParams extends Partial<ElementaryOptions> {
   uuid: string;
 }
 
@@ -113,22 +132,21 @@ class HistoryMessage extends Elementary {
     return { role, content };
   };
   constructor(options: HistoryMessageParams) {
+    const { uuid, ...parentOptions } = options;
     const dbName = 'users';
     const collectionName = 'historyMessage';
-    const parentOptions = {
-      uri: `mongodb://localhost:27017/${dbName}`,
+    const defaultParentOptions = {
+      uri: mongodb_uri,
       collectionName,
       dbName,
     };
-    super(parentOptions);
-    this.options = { uuid: options.uuid };
+    const newParentOptions = {
+      ...defaultParentOptions,
+      ...parentOptions,
+    };
+    super(newParentOptions);
+    this.options = { uuid };
   }
-  @preCheckConnection
-  async drop() {
-    const { model } = this;
-    return await model.collection.drop();
-  }
-
   @preCheckConnection
   async searchUserTopic() {
     const { model, options } = this;
@@ -137,7 +155,7 @@ class HistoryMessage extends Elementary {
   }
 
   @preCheckConnection
-  async queryTopicById(topicId: string): Promise<TopicSchema> {
+  async queryTopicById(topicId: string, projection?: Record<string, string>): Promise<TopicSchema> {
     const { model, options } = this;
     const { uuid } = options;
     // return await model.findOne({ uuid, 'topics._id': topicId }, { "topics.$": 1 })
@@ -156,11 +174,25 @@ class HistoryMessage extends Elementary {
         },
       },
       {
-        $project: { _id: 0, topics: { _id: 0, messages: { _id: 0 } } },
+        $project: projection ? projection : { _id: 0, topics: { _id: 0, messages: { _id: 0 } } },
       },
     ]);
     return data[0].topics;
   }
+
+  @preCheckConnection
+  async addTopic(topic: Topic) {
+    const { model, options } = this;
+    return await model.updateOne(
+      { uuid: options.uuid },
+      {
+        $push: { topics: topic }, // 添加到 topics 数组
+        $setOnInsert: { uuid: options.uuid }, // 在插入时设置 uuid.(插入时才会生效)
+      },
+      { upsert: true },
+    );
+  }
+
   /**
    * 加入一个Topic，会根据数据库的情况选择使用insert还是update还是push
    *
@@ -168,22 +200,22 @@ class HistoryMessage extends Elementary {
    * @return {*}
    * @memberof HistoryMessage
    */
-  @preCheckConnection
-  async addTopic(topic: Topic) {
-    const [exists, err] = await awaitWrap(Promise.all([this.checkExistentUser(), this.checkExistentTopic()]));
-    if (err) {
-      return Promise.reject(err);
-    }
-    if (exists?.[0]) {
-      if (exists?.[1]) {
-        return await this.pushTopic(topic);
-      } else {
-        return await this.resetTopic(topic);
-      }
-    } else {
-      return await this.insertTopic(topic);
-    }
-  }
+  // @preCheckConnection
+  // async addTopic(topic: Topic) {
+  //   const [exists, err] = await awaitWrap(Promise.all([this.checkExistentUser(), this.checkExistentTopic()]));
+  //   if (err) {
+  //     return Promise.reject(err);
+  //   }
+  //   if (exists?.[0]) {
+  //     if (exists?.[1]) {
+  //       return await this.pushTopic(topic);
+  //     } else {
+  //       return await this.resetTopic(topic);
+  //     }
+  //   } else {
+  //     return await this.insertTopic(topic);
+  //   }
+  // }
 
   /**
    * 没有topic的时候，加入一个topic
@@ -192,21 +224,17 @@ class HistoryMessage extends Elementary {
    * @return {*}
    * @memberof HistoryMessage
    */
-  @preCheckConnection
-  async insertTopic(topic: Topic) {
-    const { model } = this;
-    const { uuid } = this.options;
+  // @preCheckConnection
+  // async insertTopic(topic: Topic) {
+  //   const { model } = this;
+  //   const { uuid } = this.options;
 
-    const historyMessage = new model({
-      uuid,
-      topics: topic,
-      // topic: [{
-      //   createTime: Date.now(),
-      //   messages: [message]
-      // }]
-    });
-    return await historyMessage.save();
-  }
+  //   const historyMessage = new model({
+  //     uuid,
+  //     topics: topic,
+  //   });
+  //   return await historyMessage.save();
+  // }
   /**
    * 将所有的topic重置为一个topic或[].
    *
@@ -222,7 +250,7 @@ class HistoryMessage extends Elementary {
     const update = {
       topics: topic ? [] : [topic],
     };
-    return await model.findOneAndUpdate(query, update, {
+    return await model.updateOne(query, update, {
       new: true,
       upsert: true,
       projection: { topics: { $slice: -1 } },
@@ -239,7 +267,6 @@ class HistoryMessage extends Elementary {
   async deleteTopic(topicId: string) {
     const { model } = this;
     const { uuid } = this.options;
-    // return await model.findOneAndUpdate({ uuid }, {
     return await model.updateOne(
       { uuid },
       {
@@ -261,7 +288,6 @@ class HistoryMessage extends Elementary {
   async clearTopics() {
     const { model } = this;
     const { uuid } = this.options;
-    // return await model.findOneAndUpdate({ uuid }, {
     return await model.updateOne(
       { uuid },
       {
@@ -272,20 +298,19 @@ class HistoryMessage extends Elementary {
       { new: true },
     );
   }
-  @preCheckConnection
-  async pushTopic(topic: Topic) {
-    const { model } = this;
-    const { uuid } = this.options;
-    return await model.findOneAndUpdate(
-      { uuid },
-      {
-        $push: {
-          topics: topic,
-        },
-      },
-      { new: true },
-    );
-  }
+  // @preCheckConnection
+  // async pushTopic(topic: Topic) {
+  //   const { model } = this;
+  //   const { uuid } = this.options;
+  //   return await model.updateOne(
+  //     { uuid },
+  //     {
+  //       $push: {
+  //         topics: topic,
+  //       },
+  //     },
+  //   );
+  // }
 
   /**
    * push消息
@@ -295,23 +320,11 @@ class HistoryMessage extends Elementary {
    * @return {*}
    * @memberof HistoryMessage
    */
-
-  // async pushMessage(topicId: string, message: MessageSchema, queryDoc: true): Promise<Document<unknown, {}, HistoryMessageSchema> | null>
-  // async pushMessage(topicId: string, message: MessageSchema, queryDoc: false): Promise<UpdateWriteOpResult>
-  // async pushMessage(topicId: string, message: MessageSchema): Promise<UpdateWriteOpResult>
   @preCheckConnection
   async pushMessage(topicId: string, message: MessageSchema): Promise<UpdateWriteOpResult> {
     const { model } = this;
     const { uuid } = this.options;
     const newMessage = new messageModel(message);
-    // const fn = queryDoc ? model.findOneAndUpdate : model.updateOne;
-    // 不能这样写:{ new: true, projection: { 'topics.$': 1 } }. 更新文档可能导致位置投影发生错误
-    // const options = queryDoc ? { projection: { 'topics.$': 1 } } : undefined;
-    // return await fn.bind(model)({ uuid, 'topics._id': topicId }, {
-    //   $push: {
-    //     'topics.$.messages': newMessage
-    //   }
-    // }, options)
     return await model.updateOne(
       { uuid, 'topics._id': topicId },
       {
@@ -321,24 +334,6 @@ class HistoryMessage extends Elementary {
       },
     );
   }
-  // /**
-  //  * 重置消息
-  //  *
-  //  * @param {string} topicId
-  //  * @param {MessageSchema} message
-  //  * @return {*}
-  //  * @memberof HistoryMessage
-  //  */
-  // async resetMessage(topicId: string, message: MessageSchema) {
-  //   await this.checkConnect();
-  //   const { model } = this;
-  //   const { uuid } = this.options;
-  //   return await model.findOneAndUpdate({ uuid, 'topics._id': topicId }, {
-  //     $set: {
-  //       'topics.$.messages': [message]
-  //     }
-  //   }, { new: true })
-  // }
   @preCheckConnection
   async checkExistentUser() {
     const { model } = this;
@@ -364,8 +359,8 @@ class HistoryMessage extends Elementary {
       getters: true,
       virtuals: true,
       versionKey: false,
-      transform(doc, ret, options) {
-        console.log(doc, ret, options);
+      transform(...args: any[]) {
+        const [, ret] = args;
         delete ret._id;
         delete ret.id;
         return ret;
@@ -408,10 +403,11 @@ class HistoryMessage extends Elementary {
     ]);
   }
   @preCheckConnection
-  async queryTopicMessages(topicId: string): Promise<(MessageSchema & { id: string })[]> {
+  async queryTopicMessages(topicId: string, notSystem?: boolean): Promise<(MessageSchema & { id: string })[]> {
     const { model } = this;
     const { uuid } = this.options;
-    return await model.aggregate([
+
+    const pipelines: PipelineStage[] = [
       {
         $match: {
           uuid,
@@ -442,7 +438,15 @@ class HistoryMessage extends Elementary {
       {
         $replaceRoot: { newRoot: '$topics.messages' },
       },
-    ]);
+    ];
+    if (notSystem) {
+      pipelines.push({
+        $match: {
+          role: { $ne: 'system' }, // $ne 表示不等于
+        },
+      });
+    }
+    return await model.aggregate(pipelines);
   }
 
   @preCheckConnection
@@ -515,7 +519,6 @@ class HistoryMessage extends Elementary {
   async deleteMessage(topicId: string, messageId: string) {
     const { model } = this;
     const { uuid } = this.options;
-    // return await model.findOneAndUpdate({ uuid, 'topics._id': topicId }, {
     return await model.updateOne(
       { uuid, 'topics._id': topicId },
       {

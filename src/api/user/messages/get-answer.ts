@@ -4,7 +4,7 @@ import { AxiosResponse } from 'axios';
 import { PassThrough } from 'stream';
 import Router from '@koa/router';
 import { OpenAIApi, Configuration, ChatCompletionRequestMessage, CreateChatCompletionResponse } from 'openai';
-import { openai_key } from '../../env';
+import { openai_key } from '../../../env';
 const configuration = new Configuration({
   apiKey: openai_key,
 });

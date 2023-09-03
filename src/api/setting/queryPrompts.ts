@@ -17,7 +17,7 @@ const queryPrompts = (router: Router) => {
     }
     ctx.body = {
       status: successStatus,
-      data: prompt.transform(data!),
+      data: data ? prompt.transform(data!) : [],
     };
     ctx.status = 200;
     return await next();

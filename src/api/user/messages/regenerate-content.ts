@@ -1,16 +1,17 @@
-import Router from '@koa/router';
-import Chat from '../../tools/openai/chat';
 import { PassThrough } from 'stream';
-import verifyAuth from '../../tools/koa/middleware/verify-auth';
-import HistoryMessage from '../../tools/mongodb/users/history-message';
-import { isNumber, isString } from '../../tools/variable-type';
-import awaitWrap from '../../tools/await-wrap';
-import type { ChatCompletionRequestMessage } from 'openai';
-import { failStatus } from '../../constant';
+import Router from '@koa/router';
+import Chat from '../../../tools/openai/chat';
+import verifyAuth from '../../../tools/koa/middleware/verify-auth';
+import HistoryMessage, { Message } from '../../../tools/mongodb/users/history-message';
+import { isNumber, isString } from '../../../tools/variable-type';
+import awaitWrap from '../../../tools/await-wrap';
+import { failStatus } from '../../../constant';
+import { getContext, padContext, listenClientEvent } from './chat';
+
 const checkAuth = verifyAuth();
 
 interface Body {
-  reserveIndex: number; // 本次的消息
+  reserveIndex: number; // 保留的消息
   topicId: string;
 }
 const validateType = async (body: Body) => {
@@ -23,34 +24,10 @@ const validateType = async (body: Body) => {
   }
 };
 
-const getContext = async (uuid: string, topicId: string, reserveIndex: number) => {
-  const historyDb = new HistoryMessage({ uuid });
-  let context: ChatCompletionRequestMessage[] = [];
-  const [messages, err] = await awaitWrap(historyDb.queryTopicMessages(topicId));
-  if (err) {
-    return Promise.reject(err);
-  }
-  context = messages!.slice(0, reserveIndex + 1).map((item) => {
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { id, ...rest } = item;
-    return rest as ChatCompletionRequestMessage;
-  });
-  return {
-    context,
-    reserveIndex: reserveIndex,
-  };
-};
-
-const replaceMessage = async (
-  uuid: string,
-  topicId: string,
-  removeMessageIndex: number,
-  newMsg: ChatCompletionRequestMessage,
-) => {
+const replaceMessage = async (uuid: string, topicId: string, removeMessageIndex: number, newMsg: Message) => {
   const historyDb = new HistoryMessage({ uuid });
   return await historyDb.replaceMessages(topicId, newMsg, undefined, removeMessageIndex);
 };
-
 const regenerateContent = (router: Router) => {
   router.post('/regenerate-content', checkAuth, async (ctx, next) => {
     const body = ctx.request.body as Body;
@@ -76,7 +53,8 @@ const regenerateContent = (router: Router) => {
     const answerStream = new PassThrough();
     ctx.body = answerStream;
     const { topicId, reserveIndex } = body;
-    const [data, err] = await awaitWrap(getContext(ctx.uuid, topicId, reserveIndex));
+    const _reserveIndex = reserveIndex;
+    const [data, err] = await awaitWrap(getContext({ uuid: ctx.uuid, topicId, removeMessageIndex: _reserveIndex }));
     if (err) {
       ctx.body = {
         status: failStatus,
@@ -85,32 +63,57 @@ const regenerateContent = (router: Router) => {
       ctx.status = 500;
       return;
     }
-    const { context } = data!;
-    const chat = new Chat({ context });
+    const { context, prePrompt } = data!;
+    const [config, err2] = await awaitWrap(padContext(ctx.uuid, context, prePrompt));
+    if (err2) {
+      ctx.body = {
+        status: failStatus,
+        msg: '服务器错误',
+      };
+      ctx.status = 500;
+      return;
+    }
+    const chat = new Chat({ ...config });
+    const stopFn = () => {
+      const message = {
+        role: chat.answer.role,
+        content: chat.answer.content || '',
+      };
+      replaceMessage(ctx.uuid, topicId, _reserveIndex, message)
+        .catch((err) => {
+          console.log(err);
+          answerStream.write(`${JSON.stringify([{ error: '写入数据库错误，请稍后再试~' }])}\n\n`);
+        })
+        .finally(() => {
+          answerStream.end();
+        });
+    };
     chat
       .ask()
       .then((resp) => {
         chat.receivingAnswer(resp, (message) => {
+          if (message === 'end') {
+            answerStream.end();
+            return;
+          }
+          if (message === 'close') {
+            answerStream.end();
+            return;
+          }
           // 还是以\n\n分隔，然后在客户端处理的时候，进行\n\n分隔，然后将分隔的数组遍历一次，和前面的元素加起来进行JSON.parse,如果能parse，就是一个对象，如果不能parse，就是一个这个对象的一部分，继续找遍历后面元素，找到能parse的完整的对象
           answerStream.write(`${JSON.stringify(message)}\n\n`);
           if (message[message.length - 1]?.choices[0]?.finish_reason === 'stop') {
-            replaceMessage(ctx.uuid, topicId, reserveIndex, chat.answer)
-              .then((res) => {
-                console.log('continue', res);
-              })
-              .catch((err) => {
-                console.log(err);
-                answerStream.write(`${JSON.stringify([{ error: '写入数据库错误，请稍后再试~' }])}\n\n`);
-              })
-              .finally(() => {
-                answerStream.end();
-              });
+            stopFn();
           }
         });
       })
       .catch((err) => {
-        console.log(11, err);
+        console.log(err);
       });
+    listenClientEvent(answerStream, () => {
+      chat.close();
+      stopFn();
+    });
     return await next();
   });
 };

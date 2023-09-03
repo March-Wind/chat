@@ -66,10 +66,8 @@ const verifyAuth = () => {
           return;
         }
         ctx.uuid = userInfo.uuid;
-        return await next();
       } else {
         // 不知道legal是string是什么情况
-        console.log(legal);
         errBody(ctx, '请提供合法的授权凭证！');
         return;
       }
@@ -94,7 +92,7 @@ const verifyAuth = () => {
             return;
           }
           // 重新签发或者重新登录
-          const { email, name, uuid, exp } = user;
+          const { email, name, uuid, exp, id } = user;
           const now = new Date().getTime();
           if (now / 1000 - exp! > 60 * 60 * 72) {
             // 3天就重新登录
@@ -107,10 +105,9 @@ const verifyAuth = () => {
             return;
           } else {
             ctx.uuid = uuid;
-            const _token = jwt.sign({ email, name, uuid }, secret_key, { expiresIn: '1h' });
+            const _token = jwt.sign({ email, name, uuid, id }, secret_key, { expiresIn: '1h' });
             ctx.set('access_token', _token);
             ctx.set('Access-Control-Allow-Headers', 'Access_Token,Keep-Alive');
-            return await next();
           }
         }
       } else {
@@ -118,7 +115,7 @@ const verifyAuth = () => {
         return;
       }
     }
-    return true;
+    return await next();
   };
 };
 
