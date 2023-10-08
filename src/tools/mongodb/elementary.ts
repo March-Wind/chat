@@ -74,7 +74,9 @@ abstract class Elementary {
    * @return {*}  {(DocumentToObject<T>[] | DocumentToObject<T>)}
    * @memberof Elementary
    */
-  static transformDocument<T extends Document>(input: T): Omit<T, keyof Document> & { id: string } {
+  static transformDocument<T extends Document>(input: T, removeId: true): Omit<T, keyof Document>;
+  static transformDocument<T extends Document>(input: T, removeId?: false): Omit<T, keyof Document> & { id: string };
+  static transformDocument<T extends Document>(input: T, removeId?: boolean): any {
     return input.toObject({
       getters: true,
       virtuals: true,
@@ -82,7 +84,7 @@ abstract class Elementary {
       transform(...arg: any[]) {
         const ret = arg[1];
         delete ret._id;
-        // removeId && delete ret.id;
+        removeId && delete ret.id;
         return ret;
       },
     });
@@ -96,11 +98,13 @@ abstract class Elementary {
    * @return {*}  {(Omit<T, '_id'> & { id: string })}
    * @memberof Elementary
    */
-  static transformObject<T extends DocumentObject>(input: T): Omit<T, '_id'> & { id: string } {
+  static transformObject<T extends DocumentObject>(input: T): Omit<T, '_id'> & { id: string };
+  static transformObject<T extends DocumentObject>(input: T, removeId: true): Omit<T, '_id'>;
+  static transformObject<T extends DocumentObject>(input: T, removeId?: boolean): any {
     const { _id, ...reset } = input;
     return {
       ...reset,
-      id: _id.toString(),
+      ...(removeId ? {} : { id: _id.toString() }),
     } as Omit<T, '_id'> & { id: string };
   }
   /**
@@ -116,18 +120,23 @@ abstract class Elementary {
   static transform<T extends Document>(input: T[]): (Omit<T, keyof Document> & { id: string })[];
   static transform<T extends DocumentObject>(input: T): Omit<T, '_id'> & { id: string };
   static transform<T extends DocumentObject>(input: T[]): (Omit<T, '_id'> & { id: string })[];
-  static transform<T extends Document | DocumentObject>(input: T | T[]): any {
+  // removeId的类型
+  static transform<T extends Document>(input: T, removeId: true): Omit<T, keyof Document>;
+  static transform<T extends Document>(input: T[], removeId: true): Omit<T, keyof Document>[];
+  static transform<T extends DocumentObject>(input: T, removeId: true): Omit<T, '_id'>;
+  static transform<T extends DocumentObject>(input: T[], removeId: true): Omit<T, '_id'>[];
+  static transform<T extends Document | DocumentObject>(input: T | T[], removeId?: any): any {
     if (Array.isArray(input)) {
       if (input[0] instanceof Document) {
-        return (input as Document[]).map((item) => Elementary.transformDocument(item));
+        return (input as Document[]).map((item) => Elementary.transformDocument(item, removeId));
       } else {
-        return (input as DocumentObject[]).map((item) => Elementary.transformObject(item));
+        return (input as DocumentObject[]).map((item) => Elementary.transformObject(item, removeId));
       }
     } else {
       if (input instanceof Document) {
-        return Elementary.transformDocument(input);
+        return Elementary.transformDocument(input, removeId);
       } else {
-        return Elementary.transformObject(input);
+        return Elementary.transformObject(input, removeId);
       }
     }
   }

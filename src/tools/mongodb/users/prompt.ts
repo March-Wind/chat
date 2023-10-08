@@ -134,31 +134,42 @@ class Prompt extends Elementary {
             },
           },
           {
-            $unwind: '$prompts',
-          },
-          {
-            $match: {
-              // 'prompts._id': id,
-              $or: [
-                { 'prompts._id': id }, // 包括指定 id 的情况
-                { id: { $exists: false } }, // 没有指定 id 的情况
-              ],
-            },
-          },
-          {
             $project: {
-              name: 1,
-              avatar: 1,
-              modelConfig: 1,
-              context: {
+              prompts: {
                 $filter: {
-                  input: '$context',
-                  as: 'item',
-                  cond: { $ne: ['$$item.role', 'system'] },
+                  input: '$prompts',
+                  as: 'prompt',
+                  cond: {
+                    $eq: ['$$prompt._id', new Types.ObjectId(id)],
+                  },
                 },
               },
             },
           },
+          {
+            $unwind: {
+              path: '$prompts',
+            },
+          },
+          {
+            $replaceRoot: { newRoot: '$prompts' },
+          },
+          // {
+          //   $project: {
+          //     name: 1,
+          //     avatar: 1,
+          //     modelConfig: 1,
+          //     context: {
+          //       $filter: {
+          //         input: "$context",
+          //         as: "item",
+          //         cond: {
+          //           $ne: ["$$item.role", "system"],
+          //         },
+          //       },
+          //     },
+          //   },
+          // },
         ]
       : [
           {
@@ -167,17 +178,6 @@ class Prompt extends Elementary {
           {
             $unwind: '$prompts', // 展开 prompts 数组
           },
-          // {
-          //   $set: {
-          //     'prompts.context': {
-          //       $filter: {
-          //         input: '$prompts.context',
-          //         as: 'item',
-          //         cond: { $ne: ['$$item.role', 'system'] } // 过滤出 role 不是 "system" 的项
-          //       }
-          //     }
-          //   }
-          // },
           {
             $addFields: {
               'prompts.context': {

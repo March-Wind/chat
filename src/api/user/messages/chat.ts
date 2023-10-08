@@ -52,20 +52,8 @@ export const padContext = async (uuid: string, context: Message[], prePrompt?: B
     if (!result) {
       return Promise.reject('没有找到预设提示词');
     }
-    const _prePrompt = result![0]!.context.map((item) => {
-      // eslint-disable-next-line indent, @typescript-eslint/ban-ts-comment
-      //@ts-ignore
-      return item.toObject({
-        versionKey: false,
-        getters: true,
-        virtuals: true,
-        transform: (...[, ret]: any[]) => {
-          delete ret._id;
-          delete ret.id;
-          return ret;
-        },
-      });
-    });
+    type D = (typeof result)[0]['context'] & { _id: mongoose.Types.ObjectId };
+    const _prePrompt = UserPrompt.transform(result![0]!.context as D, true);
     const modelConfig = result![0]!.modelConfig;
     return {
       context: ([] as Message[]).concat(..._prePrompt).concat(context),
