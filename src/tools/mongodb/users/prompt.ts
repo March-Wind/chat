@@ -1,10 +1,10 @@
-import { Schema } from 'mongoose';
+import { Schema, Model, Types } from 'mongoose';
 import Elementary, { preCheckConnection } from '../elementary';
 import { messageSchema } from '../users/history-message';
 import { mongodb_uri } from '../../../env';
-import type { Model, Document, Types } from 'mongoose';
 import type { Message } from '../users/history-message';
 import type { ElementaryOptions } from '../elementary';
+import type { PipelineStage } from 'mongoose';
 
 type Context = Omit<Message, 'prePromptId'>;
 
@@ -122,10 +122,87 @@ class Prompt extends Elementary {
     return await model.findOne({ uuid }, { prompts: 1 });
   }
   @preCheckConnection
-  async findOne(id?: string) {
+  async findOne(id?: string): Promise<(IPrompt & { _id: Types.ObjectId })[]> {
     const { model, options } = this;
     const { uuid } = options;
-    return await model.findOne({ uuid, ...(id ? { 'prompts._id': id } : {}) }, id ? { 'prompts.$': 1 } : {});
+    // return await model.findOne({ uuid, ...(id ? { 'prompts._id': id } : {}) }, id ? { 'prompts.$': 1 } : {});
+    const pipeLine: PipelineStage[] = id
+      ? [
+          {
+            $match: {
+              uuid,
+            },
+          },
+          {
+            $unwind: '$prompts',
+          },
+          {
+            $match: {
+              // 'prompts._id': id,
+              $or: [
+                { 'prompts._id': id }, // 包括指定 id 的情况
+                { id: { $exists: false } }, // 没有指定 id 的情况
+              ],
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              avatar: 1,
+              modelConfig: 1,
+              context: {
+                $filter: {
+                  input: '$context',
+                  as: 'item',
+                  cond: { $ne: ['$$item.role', 'system'] },
+                },
+              },
+            },
+          },
+        ]
+      : [
+          {
+            $match: { uuid }, // 匹配特定的 uuid
+          },
+          {
+            $unwind: '$prompts', // 展开 prompts 数组
+          },
+          // {
+          //   $set: {
+          //     'prompts.context': {
+          //       $filter: {
+          //         input: '$prompts.context',
+          //         as: 'item',
+          //         cond: { $ne: ['$$item.role', 'system'] } // 过滤出 role 不是 "system" 的项
+          //       }
+          //     }
+          //   }
+          // },
+          {
+            $addFields: {
+              'prompts.context': {
+                $filter: {
+                  input: '$prompts.context',
+                  as: 'item',
+                  cond: { $ne: ['$$item.role', 'system'] }, // 过滤出 role 不是 "system" 的项
+                },
+              },
+            },
+          },
+          {
+            $group: {
+              _id: '$_id',
+              prompts: { $push: '$prompts' }, // 重新组装 prompts 数组
+            },
+          },
+          {
+            $unwind: '$prompts',
+          },
+          {
+            $replaceRoot: { newRoot: '$prompts' }, // 将 prompts 数组中的第一个元素作为根对象
+          },
+        ];
+    return await model.aggregate(pipeLine);
   }
   @preCheckConnection
   async updatePrompt(id: string, data: IPromptDoc) {
@@ -141,6 +218,12 @@ class Prompt extends Elementary {
         $set: update,
       },
     );
+  }
+  @preCheckConnection
+  async deletePrompt(id: string) {
+    const { model, options } = this;
+    const { uuid } = options;
+    return await model.updateOne({ uuid }, { $pull: { prompts: { _id: new Types.ObjectId(id) } } });
   }
 }
 

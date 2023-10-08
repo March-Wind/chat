@@ -190,3 +190,7 @@ the most intricate begins width a solitary thread.
     Review: `{prod_view}`
    """```
    ````
+
+### ChatGPT 官方 Prompt 指南
+
+https://platform.openai.com/docs/guides/gpt-best-practices

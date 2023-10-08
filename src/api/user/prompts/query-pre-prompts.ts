@@ -3,6 +3,9 @@ import Prompt from '../../../tools/mongodb/users/prompt';
 import awaitWrap from '../../../tools/await-wrap';
 import { failStatus, successStatus } from '../../../constant';
 import verifyAuth from '../../../tools/koa/middleware/verify-auth';
+// import type { GetDocumentDoc, ExtractDocumentType } from '../../../tools/mongodb/types'
+
+// type TransformDocumentResult<T> = GetDocumentDoc<ExtractDocumentType<T>>
 // to do 分页
 const checkAuth = verifyAuth();
 
@@ -16,7 +19,7 @@ const process = async (uuid: string) => {
   if (result === null) {
     return [];
   }
-  return Prompt.transform(result!).prompts;
+  return Prompt.transform(result!);
 };
 
 const queryUserPrePrompt = (router: Router) => {

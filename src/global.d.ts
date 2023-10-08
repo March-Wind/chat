@@ -7,6 +7,8 @@ declare global {
       SECRET_KEY: string;
       OPENAI_API_KEY: string;
       MONGODB_URI: string;
+      OPENAI_API_KEY_40?: string;
+      OPENAI_API_KEY_35?: string;
     }
   }
 }

@@ -1,15 +1,15 @@
-import { createConnection, model } from 'mongoose';
+import { createConnection, Document } from 'mongoose';
 import { sanitizeSlashes } from '../../tools/utils';
-import type { Connection, Model, Schema, Document } from 'mongoose';
-
+import type { Connection, Model, Schema, Types } from 'mongoose';
 export interface ElementaryOptions {
   uri: string;
   dbName: string;
   collectionName: string;
 }
-type DocumentToObject<T> = Omit<T, '_id'> & {
-  id?: string;
-};
+
+interface DocumentObject extends Record<string, any> {
+  _id: Types.ObjectId;
+}
 abstract class Elementary {
   protected dbName: string; // 数据库名
   protected collectionName: string; // 集合名字
@@ -40,16 +40,6 @@ abstract class Elementary {
       },
     });
   }
-  // async connect() {
-  //   const { uri } = this;
-  //   this.connection = await createConnection(uri);
-  //   this.model = await this.connection.model(this.collectionName, this.schema);
-  // }
-  // async checkConnection() {
-  //   if (!this.connection || this.connection.readyState === 0) {
-  //     await this.connect();
-  //   }
-  // }
   connect() {
     const { uri } = this;
     this.connection = createConnection(uri);
@@ -84,28 +74,62 @@ abstract class Elementary {
    * @return {*}  {(DocumentToObject<T>[] | DocumentToObject<T>)}
    * @memberof Elementary
    */
-  static transform<T extends Document>(data: T): DocumentToObject<T>;
-  static transform<T extends Document>(data: T[]): DocumentToObject<T>[];
-  static transform<T extends Document>(data: T[] | T, removeId = false): DocumentToObject<T>[] | DocumentToObject<T> {
-    const _transformDocument = (input: T): DocumentToObject<T> => {
-      return input.toObject({
-        getters: true,
-        virtuals: true,
-        versionKey: false,
-        transform(...arg: any[]) {
-          const ret = arg[1];
-          delete ret._id;
-          removeId && delete ret.id;
-          return ret;
-        },
-      });
-    };
-    if (Array.isArray(data)) {
-      return data.map((item) => {
-        return _transformDocument(item);
-      });
+  static transformDocument<T extends Document>(input: T): Omit<T, keyof Document> & { id: string } {
+    return input.toObject({
+      getters: true,
+      virtuals: true,
+      versionKey: false,
+      transform(...arg: any[]) {
+        const ret = arg[1];
+        delete ret._id;
+        // removeId && delete ret.id;
+        return ret;
+      },
+    });
+  }
+  /**
+   * 将aggregate的结果里的_id转成id
+   *
+   * @static
+   * @template T
+   * @param {T} input
+   * @return {*}  {(Omit<T, '_id'> & { id: string })}
+   * @memberof Elementary
+   */
+  static transformObject<T extends DocumentObject>(input: T): Omit<T, '_id'> & { id: string } {
+    const { _id, ...reset } = input;
+    return {
+      ...reset,
+      id: _id.toString(),
+    } as Omit<T, '_id'> & { id: string };
+  }
+  /**
+   * 把数据库的结果转化成无js对象,_id转成id
+   *
+   * @static
+   * @template T
+   * @param {(T | T[])} input
+   * @return {*}  {*}
+   * @memberof Elementary
+   */
+  static transform<T extends Document>(input: T): Omit<T, keyof Document> & { id: string };
+  static transform<T extends Document>(input: T[]): (Omit<T, keyof Document> & { id: string })[];
+  static transform<T extends DocumentObject>(input: T): Omit<T, '_id'> & { id: string };
+  static transform<T extends DocumentObject>(input: T[]): (Omit<T, '_id'> & { id: string })[];
+  static transform<T extends Document | DocumentObject>(input: T | T[]): any {
+    if (Array.isArray(input)) {
+      if (input[0] instanceof Document) {
+        return (input as Document[]).map((item) => Elementary.transformDocument(item));
+      } else {
+        return (input as DocumentObject[]).map((item) => Elementary.transformObject(item));
+      }
+    } else {
+      if (input instanceof Document) {
+        return Elementary.transformDocument(input);
+      } else {
+        return Elementary.transformObject(input);
+      }
     }
-    return _transformDocument(data);
   }
 }
 

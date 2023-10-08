@@ -1,9 +1,10 @@
-import { Schema } from 'mongoose';
+import { Schema, Document } from 'mongoose';
 import Elementary, { ElementaryOptions, preCheckConnection } from '../elementary';
 import { messageSchema } from '../users/history-message';
 import { mongodb_uri } from '../../../env';
-import type { Model, Document } from 'mongoose';
+import type { Model, Types } from 'mongoose';
 import type { Message } from '../users/history-message';
+import { isObject } from '../../../tools/variable-type';
 
 type Context = Message;
 
@@ -90,29 +91,57 @@ class Prompt extends Elementary {
     return await model.insertMany(data);
   }
   @preCheckConnection
-  async queryPrompts() {
+  async queryPrompts(): Promise<(IPrompt & { _id: Types.ObjectId })[]> {
     const { model } = this;
-    return await model.find({}, { context: 0 });
+    // return await model.find({}, { context: 0 });
+    return await model.aggregate([
+      {
+        $project: {
+          name: 1,
+          icon: 1,
+          modelConfig: 1,
+          context: {
+            $filter: {
+              input: '$context',
+              as: 'item',
+              cond: { $ne: ['$$item.role', 'system'] },
+            },
+          },
+        },
+      },
+    ]);
   }
   @preCheckConnection
   async findOne(id: string) {
     const { model } = this;
     return await model.findOne({ _id: id });
   }
-  transform(data: Document[]) {
-    return data.map((item) => {
-      return item.toObject({
-        getters: true,
-        virtuals: true,
-        versionKey: false,
-        transform(...arg: any[]) {
-          const ret = arg[1];
-          delete ret._id;
-          return ret;
-        },
-      });
-    });
-  }
+  // transform(data: Document[]) {
+  //   if (data[0] instanceof Document) {
+  //     return data.map((item) => {
+  //       return item.toObject({
+  //         getters: true,
+  //         virtuals: true,
+  //         versionKey: false,
+  //         transform(...arg: any[]) {
+  //           const ret = arg[1];
+  //           delete ret._id;
+  //           return ret;
+  //         },
+  //       });
+  //     });
+  //   }
+  //   if (isObject(data[0])) {
+  //     return data.map((item) => {
+  //       const { _id, ...rest } = item;
+  //       return {
+  //         ...rest,
+  //         id: _id.toString()
+  //       }
+  //     })
+  //   }
+
+  // }
 }
 
 export default Prompt;

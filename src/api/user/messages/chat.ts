@@ -52,7 +52,7 @@ export const padContext = async (uuid: string, context: Message[], prePrompt?: B
     if (!result) {
       return Promise.reject('没有找到预设提示词');
     }
-    const _prePrompt = result!.prompts[0]!.context.map((item) => {
+    const _prePrompt = result![0]!.context.map((item) => {
       // eslint-disable-next-line indent, @typescript-eslint/ban-ts-comment
       //@ts-ignore
       return item.toObject({
@@ -66,7 +66,7 @@ export const padContext = async (uuid: string, context: Message[], prePrompt?: B
         },
       });
     });
-    const modelConfig = result!.prompts[0]!.modelConfig;
+    const modelConfig = result![0]!.modelConfig;
     return {
       context: ([] as Message[]).concat(..._prePrompt).concat(context),
       ...modelConfig,
@@ -231,6 +231,7 @@ const playChat = async (router: Router) => {
       ctx.status = 403;
       return;
     }
+    // 开始进行聊天，锁住未来的对话，等待当前对话完成
     const [, tError] = await awaitWrap(ctx.userTemporaryStore.set({ ...userTS, chatting: 1 }, 0));
     if (tError) {
       ctx.body = {
@@ -275,7 +276,29 @@ const playChat = async (router: Router) => {
       return;
     }
     const chat = new Chat({ ...config });
+    let stopFlag = false;
     const stopFn = () => {
+      if (stopFlag) {
+        return;
+      }
+      if (!chat.answer) {
+        // openai api接口报错的分支，就会没有answer
+        ctx.userTemporaryStore
+          .set({ ...userTS, chatting: 0 }, 0)
+          .then(() => {
+            answerStream?.write(`${JSON.stringify([{ error: '聊天机器人出错了，请稍后再试~' }])}\n\n`);
+          })
+          .catch(() => {
+            answerStream?.write(
+              `${JSON.stringify([{ error: '聊天机器人出错了，并且转化对话状态失败，请联系管理员~' }])}\n\n`,
+            );
+          })
+          .finally(() => {
+            answerStream?.end();
+          });
+        return;
+      }
+      stopFlag = true;
       const message = {
         role: chat.answer.role,
         content: chat.answer.content || '',
@@ -310,6 +333,7 @@ const playChat = async (router: Router) => {
       })
       .catch((err) => {
         console.log(err);
+        stopFn();
       });
     listenClientEvent(answerStream, () => {
       chat.close();

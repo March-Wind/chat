@@ -5,7 +5,7 @@ import verifyAuth from '../../../tools/koa/middleware/verify-auth';
 import HistoryMessage, { Message } from '../../../tools/mongodb/users/history-message';
 import { isNumber, isString } from '../../../tools/variable-type';
 import awaitWrap from '../../../tools/await-wrap';
-import { failStatus } from '../../../constant';
+import { failStatus, waitingForCompletion } from '../../../constant';
 import { getContext, padContext, listenClientEvent } from './chat';
 
 const checkAuth = verifyAuth();
@@ -40,6 +40,35 @@ const regenerateContent = (router: Router) => {
       ctx.status = 400;
       return;
     }
+
+    const [userTS, UTSError] = await awaitWrap(ctx.userTemporaryStore.get());
+    if (UTSError) {
+      ctx.body = {
+        status: failStatus,
+        msg: UTSError,
+      };
+      ctx.status = 500;
+      return;
+    }
+    if (userTS?.chatting) {
+      ctx.body = {
+        status: waitingForCompletion,
+        msg: '请等待上一个聊天完成，再开启下一个聊天~',
+      };
+      ctx.status = 403;
+      return;
+    }
+    // 开始进行聊天，锁住未来的对话，等待当前对话完成
+    const [, tError] = await awaitWrap(ctx.userTemporaryStore.set({ ...userTS, chatting: 1 }, 0));
+    if (tError) {
+      ctx.body = {
+        status: failStatus,
+        msg: tError,
+      };
+      ctx.status = 500;
+      return;
+    }
+
     ctx.set({
       // 'Content-Type': 'text/event-stream',
       'Content-Type': 'text/event-stream;',
@@ -74,7 +103,29 @@ const regenerateContent = (router: Router) => {
       return;
     }
     const chat = new Chat({ ...config });
+    let stopFlag = false;
     const stopFn = () => {
+      if (stopFlag) {
+        return;
+      }
+      if (!chat.answer) {
+        // openai api接口报错的分支，就会没有answer
+        ctx.userTemporaryStore
+          .set({ ...userTS, chatting: 0 }, 0)
+          .then(() => {
+            answerStream?.write(`${JSON.stringify([{ error: '聊天机器人出错了，请稍后再试~' }])}\n\n`);
+          })
+          .catch(() => {
+            answerStream?.write(
+              `${JSON.stringify([{ error: '聊天机器人出错了，并且转化对话状态失败，请联系管理员~' }])}\n\n`,
+            );
+          })
+          .finally(() => {
+            answerStream?.end();
+          });
+        return;
+      }
+      stopFlag = true;
       const message = {
         role: chat.answer.role,
         content: chat.answer.content || '',
@@ -108,7 +159,8 @@ const regenerateContent = (router: Router) => {
         });
       })
       .catch((err) => {
-        console.log(err);
+        console.log('regenerate-content', err);
+        stopFn();
       });
     listenClientEvent(answerStream, () => {
       chat.close();

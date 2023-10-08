@@ -1,7 +1,7 @@
 import IOpenAI from './base';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import Tokens from './tokens';
-import { proxy } from '../../env';
+import { openai_key_40, openai_key_35, proxy } from '../../env';
 import type { CreateChatCompletionResponse, ChatCompletionRequestMessage } from 'openai';
 import type { AxiosResponse } from 'axios';
 import type { IncomingMessage } from 'http';
@@ -31,21 +31,26 @@ class Chat extends IOpenAI {
   private temperature: number;
   private resp: AnswerFormat | undefined = undefined;
   constructor(props?: Props) {
-    super();
     const defaultOptions: Required<Props> = {
       stream: true,
       model: 'gpt-3.5-turbo',
+      // model: 'gpt-4',
       context: [],
-      temperature: 0.2,
-      frequency_penalty: 0,
+      temperature: 0.5,
+      frequency_penalty: 0.5,
     };
     const initOptions = {
       ...defaultOptions,
       ...props,
     };
+    // 设置对应的模型的key
+    const apiKey_4_0 = openai_key_40?.split(',') || [];
+    const apiKey_3_5 = openai_key_35?.split(',') || [];
+    const apiKey = initOptions.model === 'gpt-4' ? apiKey_4_0[0] : apiKey_3_5[0];
+    super({ apiKey });
+    // 初始化对话上下文以及对话的规格参数
     this.context = initOptions.context;
     this.askContent = this.context;
-
     this.tokens = new Tokens({ model: initOptions.model });
     // this.recordTokensCount(initOptions.system);
     Object.defineProperties(this, {
@@ -78,6 +83,9 @@ class Chat extends IOpenAI {
   callOpenAi(): Promise<AnswerFormat> {
     const stream = this.stream;
     const modal = this.model;
+    this.askContent.forEach((item) => {
+      console.log(item.content + '\n\n');
+    });
     const answer = this.openai.createChatCompletion(
       {
         model: modal,
@@ -108,14 +116,16 @@ class Chat extends IOpenAI {
         this.receivingAnswer(resp, this.pushHistoryMsg.bind(this));
       })
       .catch((err) => {
-        console.log(err);
+        console.log('class Chat extends IOpenAI内部统计：', err);
       });
     question && this.recordTokensCount(question);
     return answer;
   }
   close() {
     this.resp?.data.destroy();
-    this.answer.content = this.answer.receiving as string;
+    if (this.answer) {
+      this.answer.content = this.answer.receiving as string;
+    }
     this.resp = undefined;
   }
   receivingAnswer(

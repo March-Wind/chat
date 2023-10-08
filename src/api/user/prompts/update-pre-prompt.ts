@@ -23,7 +23,7 @@ const validateType = async (body: Body) => {
     return Promise.reject('参数不合法');
   }
   const validateItem = context.find((item) => {
-    return !['system', 'user', 'assistant'].includes(item.role) || isString(item.content);
+    return !['system', 'user', 'assistant'].includes(item.role) || !isString(item.content);
   });
   if (validateItem) {
     return Promise.reject('参数不合法');

@@ -1,3 +1,4 @@
+import type { Document } from 'mongodb';
 import { failStatus, successStatus } from '../../constant';
 import awaitWrap from '../../tools/await-wrap';
 import Prompt from '../../tools/mongodb/setting/prompt';
@@ -17,7 +18,7 @@ const queryPrompts = (router: Router) => {
     }
     ctx.body = {
       status: successStatus,
-      data: data ? prompt.transform(data!) : [],
+      data: data ? Prompt.transform(data!) : [],
     };
     ctx.status = 200;
     return await next();

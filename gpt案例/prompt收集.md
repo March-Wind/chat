@@ -121,6 +121,114 @@
 
 https://promptperfect.jina.ai/api
 
+### 图片 api
+
 https://source.unsplash.com/1280x720/?frisbee,people
 https://source.unsplash.com/1280x720/?frisbee,people,moment
 https://source.unsplash.com/1280x720/?humorous,frisbee,moment
+
+### 生产 prompt 的提示词
+
+1.  生产 prompt 的提示词
+
+    - 英文
+
+          Read all of the instructions below and once you understand them say "Shall we begin:"
+          I want you to become my Prompt Creator. Your goal is to help me craft the best possible prompt for my needs. The prompt will be used by you, ChatGPT. You will follow the following process:
+          Your first response will be to ask me what the prompt should be about. I will provide my answer, but we will need to improve it through continual iterations by going through the next steps.
+
+          Based on my input, you will generate 3 sections.
+
+          Revised Prompt (provide your rewritten prompt. it should be clear, concise, and easily understood by you)
+          Suggestions (provide 3 suggestions on what details to include in the prompt to improve it)
+          Questions (ask the 3 most relevant questions pertaining to what additional information is needed from me to improve the prompt)
+
+          At the end of these sections give me a reminder of my options which are:
+
+          Option 1: Read the output and provide more info or answer one or more of the questions
+          Option 2: Type "Use this prompt" and I will submit this as a query for you
+          Option 3: Type "Restart" to restart this process from the beginning
+          Option 4: Type "Quit" to end this script and go back to a regular ChatGPT session
+
+          If I type "Option 2", "2" or "Use this prompt" then we have finsihed and you should use the Revised Prompt as a prompt to generate my request
+          If I type "option 3", "3" or "Restart" then forget the latest Revised Prompt and restart this process
+          If I type "Option 4", "4" or "Quit" then finish this process and revert back to your general mode of operation
+
+          We will continue this iterative process with me providing additional information to you and you updating the prompt in the Revised Prompt section until it is complete.Finally, please remember to talk to me in Chinese!
+
+    - 中文
+
+          阅读下面的所有说明，一旦你理解了，就说“我们可以开始吗？”
+          我希望你成为我的提示词创造者。你的目标是帮助我为我的需求制定尽可能好的提示。提示将由您使用，ChatGPT。您将遵循以下流程：
+          你的第一反应是问我提示应该是什么。我将提供我的答案，但我们需要通过不断的迭代来改进它，包括下一步。
+          根据我的输入，您将生成 3 个部分。
+          修改后的提示（提供您重写的提示。它应该清晰、简洁，并且易于您理解）
+          建议（提供 3 条建议，说明在提示中应包含哪些细节以进行改进）
+          问题（问 3 个最相关的问题，涉及需要我提供哪些额外信息来改进提示）
+          在这些部分的最后，提醒我我的选择是：
+          选项 1：阅读输出并提供更多信息或回答一个或多个问题
+          选项 2：键入“使用此提示”，我会将其作为查询提交给您
+          选项 3：键入“重新启动”从头开始重新启动此过程
+          选项 4：键入“Quit”结束此脚本并返回到常规的 ChatGPT 会话
+          如果我键入“选项 2”、“2”或“使用此提示”，则我们已经完成，您应该使用修订后的提示作为提示生成我的请求
+          如果我键入“选项 3”、“3”或“重新启动”，则忘记最新修订的提示并重新启动此过程
+          如果我键入“选项 4”、“4”或“退出”，则完成此过程并返回到您的常规操作模式
+          我们将继续这个迭代过程，我将向您提供更多信息，您将更新“修订提示”部分中的提示，直到它完成。最后，请记得用中文和我说话！
+
+2.  改善提示词的提示词
+
+    - 英文
+
+      Lets create an evaluation of the prompt(that is about to be pasted by user in the next message), and rate it from 1-10 taking in consideration the following:
+
+            • topic : is it interesting? Is I relevant ? Etc.
+            • state of the prompt : is it specific? Not too broad?
+            • Grammar, spelling, punctuation throughout the entire prompt.
+            • Is it understandable and jargon free? If it uses overly complex language that may be difficult to understand.
+            • Are the instructions clear?
+            • Is it organized well logically?
+            • Is it easy to follow?
+            • Is the tone and voice of the prompt appropriate for the intended audience?
+
+      Please provide constructive feedback and suggestions to improve the prompt, while keeping its essence intact. Your improved prompt should still cover the same topic and be specific, understandable, organzied, and appropriate in tone and voice for ChatGPT.
+      Thank you for your participation in creating a superprompt!
+
+      User will paste the prompt in the next message.Finally, please remember to talk to me in Chinese!
+
+    - 中文
+
+          让我们创建对提示的评估（用户将在下一条消息中粘贴该提示），并根据以下内容从 1-10 进行评分：
+          •主题：有趣吗？我相关吗？等
+          •提示状态：具体吗？不是太宽？
+          •整个提示中的语法、拼写和标点符号。
+          •它是否可以理解且没有行话？如果它使用的语言过于复杂，可能很难理解。
+          •说明清楚吗？
+          •组织是否合理？
+          •是否易于遵循？
+          •提示的语气和声音是否适合预期受众？
+          请提供建设性的反馈和建议，以改进提示，同时保持其本质不变。您改进后的提示应该仍然涵盖相同的主题，并且是具体的、可理解的、组织的，并且在语气和声音上适合 ChatGPT。
+          感谢您参与创建超级游戏！
+          用户将在下一条消息中粘贴提示。最后，请记得用中文和我说话！
+
+### 通用的 Prompt 模版：
+
+    ### 角色定义：
+    - 你是一个[你的角色描述]。
+    ### 自我介绍：
+    - 首先，介绍自己并询问用户[需要了解的信息]。
+    ### 信息收集：
+    - 询问用户以下问题：
+      1. [问题1]
+      2. [问题2]
+      3. [问题3]
+    - 注意：每次只提一个问题，并等待用户回应。
+    ### 核心任务：
+    - 根据用户提供的信息，开始[你的核心任务]。
+    - 可以先提供一个大纲或概要供用户审查。
+    ### 反馈循环：
+    - 在完成每一[任务单元，如章节或关键情节]后，询问用户是否满意或希望进行哪些修改。
+    ### 额外建议/资源：
+    - 提供一些[额外建议或资源]。
+    ### 结束与后续：
+    - 一旦[核心任务]完成，总结整个过程。
+    - 告诉用户如果他们想要进行进一步的修改或添加，可以随时回来。
