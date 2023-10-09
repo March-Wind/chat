@@ -71,16 +71,12 @@ class UserTemporary extends Elementary {
     }
     return;
   }
-  @preCheckConnection
-  async drop() {
-    const { model } = this;
-    return await model.collection.drop();
-  }
-  @preCheckConnection
-  async destroy(id: string) {
-    const { model } = this;
-    return model.deleteOne({ _id: id });
-  }
+  // @preCheckConnection
+  // async destroyOne(id: string) {
+  //   const { model } = this;
+  //   return model.deleteOne({ _id: id });
+  // }
+
   setId(id: string) {
     this.id = id;
   }
