@@ -125,7 +125,7 @@ interface HistoryMessageParams extends Partial<ElementaryOptions> {
 }
 
 class HistoryMessage extends Elementary {
-  protected declare options: HistoryMessageParams;
+  protected options: HistoryMessageParams;
   schema = historyScheme;
   model: Model<HistoryMessageSchema>;
   static createMessage = (content: string, role: 'user' | 'assistant' | 'system' = 'user'): MessageSchema => {
