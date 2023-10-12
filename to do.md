@@ -29,3 +29,8 @@
 3. 防止 noSQL 注入
 
 ## @resolve 是解决疑问了
+
+###
+
+"dev:node2": "node --inspect-brk --loader ts-node/esm ./src/index.ts",
+"dev:node:debug2": "node --inspect-brk --loader ts-node/esm ./src/index.ts",
