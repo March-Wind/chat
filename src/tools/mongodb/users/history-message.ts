@@ -392,6 +392,7 @@ class HistoryMessage extends Elementary {
           lastUpdateTime: { $toLong: '$lastUpdateTime' },
           createTime: { $toLong: '$createTime' },
           id: { $toString: '$_id' },
+          messagesCount: { $size: '$messages' },
         },
       },
       {

@@ -1,3 +1,4 @@
+import Stream from 'stream';
 import IOpenAI from './base';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import Tokens from './tokens';
@@ -14,6 +15,7 @@ export interface Props {
   context?: ChatCompletionRequestMessage[]; // 上下文
   temperature?: number; // 回答的温度，也是答案概率程度
   frequency_penalty?: number; // 生成的词，会进行去重处理
+  presence_penalty?: number; //
 }
 
 // 回答格式
@@ -29,15 +31,20 @@ class Chat extends IOpenAI {
   private context: ChatCompletionRequestMessage[]; // 上下文
   private askContent: ChatCompletionRequestMessage[]; // 提问内容
   private temperature: number;
+  private frequency_penalty: number;
+  private presence_penalty: number;
   private resp: AnswerFormat | undefined = undefined;
+  private unexpectedReturns = '';
   constructor(props?: Props) {
     const defaultOptions: Required<Props> = {
       stream: true,
-      model: 'gpt-3.5-turbo',
-      // model: 'gpt-4',
+      // model: 'gpt-3.5-turbo',
+      // model: 'gpt-4-32k',
+      model: 'gpt-4',
       context: [],
       temperature: 0.5,
-      frequency_penalty: 0.5,
+      frequency_penalty: 1,
+      presence_penalty: 1,
     };
     const initOptions = {
       ...defaultOptions,
@@ -78,6 +85,12 @@ class Chat extends IOpenAI {
         writable: false,
         value: initOptions.frequency_penalty,
       },
+      presence_penalty: {
+        enumerable: true,
+        configurable: false,
+        writable: false,
+        value: initOptions.presence_penalty,
+      },
     });
   }
   callOpenAi(): Promise<AnswerFormat> {
@@ -92,6 +105,8 @@ class Chat extends IOpenAI {
         messages: this.askContent,
         stream,
         temperature: this.temperature,
+        frequency_penalty: this.frequency_penalty || 1,
+        presence_penalty: this.presence_penalty || 1,
       },
       {
         httpsAgent: agent,
@@ -104,7 +119,12 @@ class Chat extends IOpenAI {
     // processCb(answer);
     return answer;
   }
-  ask(question?: string) {
+  ask(params: {
+    question?: string;
+    cb?: (message: CreateChatCompletionResponse[] | 'end' | 'close') => void;
+    errCb?: (err: any) => void;
+  }) {
+    const { question, cb, errCb } = params;
     question &&
       this.askContent.push({
         role: 'user',
@@ -113,7 +133,10 @@ class Chat extends IOpenAI {
     const answer = this.callOpenAi();
     answer
       .then((resp) => {
-        this.receivingAnswer(resp, this.pushHistoryMsg.bind(this));
+        this.receivingAnswer(resp, (response) => {
+          this.pushHistoryMsg(response);
+          cb?.(response);
+        });
       })
       .catch((err) => {
         console.log('class Chat extends IOpenAI内部统计：', err);
@@ -252,13 +275,19 @@ class Chat extends IOpenAI {
     });
   }
   parseStreamMsg(buffers: Buffer): CreateChatCompletionResponse[] {
-    const msgs = buffers
-      .toString()
-      .split('\n\n')
-      .filter((item) => !!item);
+    // bug：openai stream模式会返回不完整对象，例如data: {"id":"chatcmpl-88fnMltq7wZuouVuosLcOcJqHRODS","object":"chat.completion.chunk","crea
+    // 使用这种补丁的方式，拿到完整的返回，一次性来解析。
+    let processString = this.unexpectedReturns.replace(/ /g, '');
+    processString = processString.replace(/^data:|\n\ndata:/g, '\n\n');
+
+    const content = buffers.toString().replace(/ /g, '');
+    const msgs = (content + processString).split('\n\n').filter((item) => !!item);
     return msgs
       .map((item) => {
         let json: CreateChatCompletionResponse | undefined = undefined;
+        if (item === '[DONE]') {
+          return '';
+        }
         try {
           const jsonStr = item.replace(/^data:/, '');
           const _json = JSON.parse(jsonStr) as Stream_CreateChatCompletionResponse;
@@ -276,7 +305,9 @@ class Chat extends IOpenAI {
               },
             ],
           };
+          this.unexpectedReturns = '';
         } catch (error) {
+          this.unexpectedReturns += content;
           return json;
         }
         return json;

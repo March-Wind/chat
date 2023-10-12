@@ -47,12 +47,18 @@ const createTopicByTopicId = (router: Router) => {
 
     // 由于第一个是系统设置，所以不是用户对话的过程，不参与生成主题
     const prompt = generateTopic(data![0]!.content, data![1]!.content.slice(0, 100));
-    const chat = new Chat({ stream: false });
+    const chat = new Chat({
+      stream: false,
+      model: 'gpt-3.5-turbo',
+      temperature: 0.3,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+    });
     await new Promise((resolve) => {
       chat
-        .ask(prompt)
-        .then((resp) => {
-          chat.receivingAnswer(resp, (data) => {
+        .ask({
+          question: prompt,
+          cb: (data) => {
             if (data === 'close' || data === 'end') {
               return;
             }
@@ -76,7 +82,7 @@ const createTopicByTopicId = (router: Router) => {
                 ctx.status = 500;
                 return;
               });
-          });
+          },
         })
         .catch((err: any) => {
           console.log(err);

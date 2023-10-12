@@ -7,12 +7,14 @@ import { isNumber, isString } from '../../../tools/variable-type';
 import awaitWrap from '../../../tools/await-wrap';
 import { failStatus, waitingForCompletion } from '../../../constant';
 import { getContext, padContext, listenClientEvent } from './chat';
+import type { IPrompt } from '../../../tools/mongodb/users/prompt';
 
 const checkAuth = verifyAuth();
 
 interface Body {
   reserveIndex: number; // 保留的消息
   topicId: string;
+  userModalConfig?: IPrompt['modelConfig'];
 }
 const validateType = async (body: Body) => {
   const { reserveIndex, topicId } = body;
@@ -81,7 +83,7 @@ const regenerateContent = (router: Router) => {
     });
     const answerStream = new PassThrough();
     ctx.body = answerStream;
-    const { topicId, reserveIndex } = body;
+    const { topicId, reserveIndex, userModalConfig } = body;
     const _reserveIndex = reserveIndex;
     const [data, err] = await awaitWrap(getContext({ uuid: ctx.uuid, topicId, removeMessageIndex: _reserveIndex }));
     if (err) {
@@ -102,7 +104,7 @@ const regenerateContent = (router: Router) => {
       ctx.status = 500;
       return;
     }
-    const chat = new Chat({ ...config });
+    const chat = new Chat({ ...userModalConfig, ...config });
     let stopFlag = false;
     const stopFn = () => {
       if (stopFlag) {
@@ -140,9 +142,8 @@ const regenerateContent = (router: Router) => {
         });
     };
     chat
-      .ask()
-      .then((resp) => {
-        chat.receivingAnswer(resp, (message) => {
+      .ask({
+        cb(message) {
           if (message === 'end') {
             answerStream.end();
             return;
@@ -156,7 +157,7 @@ const regenerateContent = (router: Router) => {
           if (message[message.length - 1]?.choices[0]?.finish_reason === 'stop') {
             stopFn();
           }
-        });
+        },
       })
       .catch((err) => {
         console.log('regenerate-content', err);

@@ -8,6 +8,7 @@ import UserPrompt from '../../../tools/mongodb/users/prompt';
 import { isNumber, isString } from '../../../tools/variable-type';
 import awaitWrap from '../../../tools/await-wrap';
 import type { Message } from '../../../tools/mongodb/users/history-message';
+import type { IPrompt } from '../../../tools/mongodb/users/prompt';
 import { failStatus, waitingForCompletion } from '../../../constant';
 import SystemPrompt from '../../../tools/mongodb/setting/prompt';
 const checkAuth = verifyAuth();
@@ -21,6 +22,7 @@ interface Body {
     avatar: string;
     type: 'user' | 'system'; // 用户设置和系统设置
   };
+  userModalConfig?: IPrompt['modelConfig'];
 }
 
 const validateType = async (body: Body) => {
@@ -241,7 +243,7 @@ const playChat = async (router: Router) => {
     });
     const answerStream = new PassThrough();
     ctx.body = answerStream;
-    const { msg, topicId, prePrompt } = body;
+    const { msg, topicId, prePrompt, userModalConfig } = body;
     const [data, err] = await awaitWrap(getContext({ uuid: ctx.uuid, msg, topicId, prePrompt }));
     if (err) {
       ctx.body = {
@@ -263,7 +265,7 @@ const playChat = async (router: Router) => {
       await ctx.userTemporaryStore.set({ ...userTS, chatting: 0 }, 0);
       return;
     }
-    const chat = new Chat({ ...config });
+    const chat = new Chat({ ...userModalConfig, ...config });
     let stopFlag = false;
     const stopFn = () => {
       if (stopFlag) {
@@ -304,9 +306,8 @@ const playChat = async (router: Router) => {
     answerStream.write(`${JSON.stringify([{ type: 'topicId', topicId: thisTopicId }])}\n\n`);
 
     chat
-      .ask()
-      .then((resp) => {
-        chat.receivingAnswer(resp, (message) => {
+      .ask({
+        cb(message) {
           if (message === 'end' || message === 'close') {
             // 由于在 finish_reason === 'stop'做了结束，所以这里直接返回就行了
             return;
@@ -317,7 +318,7 @@ const playChat = async (router: Router) => {
           if (message[message.length - 1]?.choices[0]?.finish_reason === 'stop') {
             stopFn();
           }
-        });
+        },
       })
       .catch((err) => {
         console.log(err);

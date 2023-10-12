@@ -5,7 +5,6 @@ import type { SchemaParamType } from '../types';
 import type { UpdatedInterface } from '../../../tool';
 import type { Model } from 'mongoose';
 export type BaseInfoSchema = SchemaParamType<BaseInfo['schema']>;
-
 const _schema = new Schema({
   // schame模式定义的类型校验在set之前校验
   uuid: {
@@ -78,6 +77,11 @@ const _schema = new Schema({
       },
     ],
   },
+  // availableModels: {
+  //   type: [String],
+  //   enum: ["gpt-3.5-turbo", "gpt-4"],
+  //   default: ["gpt-3.5-turbo"],
+  // },
 });
 // 上升到程序里是唯一的，保证不重复创建模型
 // export const _model = model(collectionName, _schema);

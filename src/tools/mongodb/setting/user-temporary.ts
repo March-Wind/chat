@@ -112,6 +112,8 @@ const extendContext = (ctx: Koa.DefaultContext) => {
   });
 };
 const userTemporaryStore = (app: Koa<Koa.DefaultState, Koa.DefaultContext>) => {
+  const userStore = new UserTemporary();
+  userStore.drop();
   extendContext(app.context);
   return async function userTemporaryStore(ctx: Koa.Context, next: Koa.Next) {
     const authorization = ctx.request.header['authorization'];
