@@ -10,7 +10,7 @@ type UserSchema = BaseInfoSchema & FingerprintSchema;
 // 检验类型以防止noSQL注入
 const validateType = (user: UserSchema) => {
   const userBase = new UserBase();
-  return userBase.checkParamsType(user);
+  return userBase.checkParamsType(user, Object.keys(user));
 };
 
 const process = async (user: UserSchema) => {

@@ -51,7 +51,6 @@ abstract class Elementary {
     }
   }
   async onError(cb: (err: any) => void) {
-    // await this.checkConnection();
     this.checkConnection();
     this.connection?.on('error', cb);
   }
@@ -60,10 +59,13 @@ abstract class Elementary {
     this.connection = null;
   }
   async drop() {
-    // await this.checkConnection();
     this.checkConnection();
     const { model } = this;
-    return await model.collection.drop();
+    const number = await model.count();
+    // 存在才能删除，否测会报错
+    if (number) {
+      return await model.collection.drop();
+    }
   }
   /**
    * 将文档转成对象

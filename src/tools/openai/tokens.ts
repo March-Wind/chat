@@ -1,4 +1,5 @@
 // import tiktoken from '@dqbd/tiktoken';
+// import '@dqbd/tiktoken/tiktoken_bg.wasm'
 import {
   encoding_for_model,
   // get_encoding,
