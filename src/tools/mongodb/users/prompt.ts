@@ -5,6 +5,7 @@ import { mongodb_uri } from '../../../env';
 import type { Message } from '../users/history-message';
 import type { ElementaryOptions } from '../elementary';
 import type { PipelineStage } from 'mongoose';
+import type { TiktokenModel } from '@dqbd/tiktoken';
 
 type Context = Omit<Message, 'prePromptId'>;
 
@@ -18,6 +19,7 @@ export interface IPrompt {
     temperature: number;
     frequency_penalty?: number;
     presence_penalty?: number;
+    model: TiktokenModel;
   };
 }
 interface IPromptDoc extends IPrompt {
@@ -52,6 +54,12 @@ const promptSchema = new Schema<IPrompt>({
       type: Number,
       min: -2,
       max: 2,
+    },
+    model: {
+      type: String,
+      required: true,
+      default: 'gpt-4',
+      enum: ['gpt-4', 'gpt-3.5-turbo'],
     },
   },
 });

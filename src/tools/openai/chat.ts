@@ -134,7 +134,8 @@ class Chat extends IOpenAI {
     answer
       .then((resp) => {
         this.receivingAnswer(resp, (response) => {
-          this.pushHistoryMsg(response);
+          this.handleMessage(response);
+          // this.pushHistoryMsg(response);
           cb?.(response);
         });
       })
@@ -222,57 +223,121 @@ class Chat extends IOpenAI {
     //   console.log(err)
     // })
   }
-  pushHistoryMsg(responseJsons: CreateChatCompletionResponse[] | 'end' | 'close') {
-    if (responseJsons === 'end' || responseJsons === 'close') {
+  handleMessage(responseJsons: CreateChatCompletionResponse[] | 'end' | 'close') {
+    if (responseJsons === 'close' || responseJsons === 'end') {
       return;
     }
-    responseJsons.forEach((json) => {
-      const answer = this.answer;
+    const _this = this;
+    responseJsons.forEach((item) => {
       const {
         choices,
-        id,
+        // id,
         // object, model
-      } = json;
+      } = item;
       const {
-        message,
+        // message,
         // index,
         finish_reason,
-      } = choices[0]!; // 流式返回类型需要做的处理
-      const { role, content = '' } = message!;
-      // json形式返回
-      if (finish_reason === 'stop' && !answer?.receiving) {
-        this.answer = {
-          role,
-          content,
-          // id,
-        };
-        this.recordTokensCount(content);
-        return;
+      } = choices[0]!;
+      // 针对返回类型分别处理
+      switch (finish_reason) {
+        case 'function_call':
+          // 模型决定调用函数
+          break;
+        case 'content_filter':
+          // 有害输出,直接结束
+          break;
+        case 'length': {
+          // 超过上下文
+          // 带上返回继续请求会返回400
+          // 暂时处理的方法是让用户直接超出上下文的限制了，开启新的对话
+
+          // const _context = [...this.context];
+          // _context.push({
+          //   role: this.answer.role,
+          //   content: this.answer.receiving
+          // })
+          // const _anser = new Chat({
+          //   model: this.model,
+          //   stream: true,
+          //   context: _context,
+          //   temperature: this.temperature,
+          //   frequency_penalty: this.frequency_penalty,
+          //   presence_penalty: this.presence_penalty
+          // })
+          // _anser.ask({
+          //   cb(message) {
+          //     _this.handleMessage(message);
+          //   }
+          // })
+          return '';
+        }
+        case 'stop':
+        // 已经返回完整信息，正常结束
+        // eslint-disable-next-line no-fallthrough
+        case null:
+          // API 响应仍在进行中或不完整
+          this.pushHistoryMsg(item);
+          break;
       }
-      // stream形式返回的结束
-      if (finish_reason === 'stop' && answer?.receiving) {
-        answer.content = answer.receiving as string;
-        delete answer.receiving;
-        delete answer.id;
-        this.recordTokensCount(answer.content);
-        return;
-      }
-      // stream形式返回的收集
-      if (answer?.id === id) {
-        const { receiving = '' } = answer;
-        answer.receiving = receiving + content;
-        return;
-      }
-      // 包含两种情况
-      // 1. 没有对话记录的状态 lastMsg是undefined
-      // 2. 问完等待回答的状态，lastMsg的role是user,现在回答的role是assistant
-      this.answer = {
-        role,
-        content,
-        id,
-        receiving: content,
-      };
     });
+  }
+  pushHistoryMsg(responseJson: CreateChatCompletionResponse) {
+    const answer = this.answer;
+    const {
+      choices,
+      id,
+      // object, model
+    } = responseJson;
+    const {
+      message,
+      // index,
+      finish_reason,
+    } = choices[0]!;
+    const { role, content = '' } = message!;
+    if (finish_reason === 'stop' || finish_reason === 'length') {
+      // json形式一次性返回
+      // stream形式返回的结束
+      this.answer = {
+        role: role || this.answer.role,
+        content: content || this.answer.receiving,
+        // id,
+      };
+      this.recordTokensCount(content);
+      return;
+    }
+    // // json形式一次性返回
+    // if (finish_reason === 'stop' && !answer?.receiving) {
+    //   this.answer = {
+    //     role,
+    //     content,
+    //     // id,
+    //   };
+    //   this.recordTokensCount(content);
+    //   return;
+    // }
+    // // stream形式返回的结束
+    // if (finish_reason === 'stop' && answer?.receiving) {
+    //   answer.content = answer.receiving as string;
+    //   delete answer.receiving;
+    //   delete answer.id;
+    //   this.recordTokensCount(answer.content);
+    //   return;
+    // }
+    // stream形式返回的收集
+    if (answer?.id === id) {
+      const { receiving = '' } = answer;
+      answer.receiving = receiving + content;
+      return;
+    }
+    // 包含两种情况
+    // 1. 没有对话记录的状态 lastMsg是undefined
+    // 2. 问完等待回答的状态，lastMsg的role是user,现在回答的role是assistant
+    this.answer = {
+      role,
+      id,
+      receiving: content,
+    };
   }
   parseStreamMsg(buffers: Buffer): CreateChatCompletionResponse[] {
     // bug：openai stream模式会返回不完整对象，例如data: {"id":"chatcmpl-88fnMltq7wZuouVuosLcOcJqHRODS","object":"chat.completion.chunk","crea

@@ -4,7 +4,7 @@ import { messageSchema } from '../users/history-message';
 import { mongodb_uri } from '../../../env';
 import type { Model, Types } from 'mongoose';
 import type { Message } from '../users/history-message';
-
+import type { TiktokenModel } from '@dqbd/tiktoken';
 type Context = Message;
 
 const contextScheme = messageSchema;
@@ -17,6 +17,7 @@ export interface IPrompt {
     temperature: number;
     frequency_penalty?: number;
     presence_penalty?: number;
+    model: TiktokenModel;
   };
 }
 
@@ -49,6 +50,12 @@ const promptSchema = new Schema<IPrompt>({
       type: Number,
       min: -2,
       max: 2,
+    },
+    model: {
+      type: String,
+      required: true,
+      default: 'gpt-4',
+      enum: ['gpt-4', 'gpt-3.5-turbo'],
     },
   },
 });
