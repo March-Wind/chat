@@ -26,8 +26,20 @@
 2. pm2 管理器（安装之后使用 root 登录，能执行 nvm ls 其他的命令找不到）
    - 但是 node 18 版本的运行缺少所需的 GLIBC（GNU C Library）版本 ，降级到 16，就行了
 3. 安装了 nginx
+
+   - 安装路径：/www/server/nginx
+   - 配置文件路径：/www/server/nginx/conf/nginx.conf
+
 4. 安装了 mongodb
 
    > https://cloud.tencent.com/developer/article/1476654?from=15425
 
    > 安装包列表：https://www.mongodb.com/download-center/community/releases
+
+   - 安装路径：/www/server/mongodb
+   - 配置文件路径：/www/server/mongodb/bin/mongodb.conf
+   - 启动文件路经：/www/server/mongodb/bin/mongod
+   - 数据文件文件：/www/server/mongodb/data
+   - mongodb://liuzhiyang:199401132211@43.153.51.25:27099/
+   - 启动命令： cd /www/server/mongodb/bin/ && ./mongod --config mongodb.conf
+   - 链接命令：mongodb://liuzhiyang:199401132211@43.153.51.25:27099/
