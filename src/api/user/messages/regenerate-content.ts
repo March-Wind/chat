@@ -114,9 +114,9 @@ const regenerateContent = (router: Router) => {
         // openai api接口报错的分支，就会没有answer
         ctx.userTemporaryStore
           .set({ ...userTS, chatting: 0 }, 0)
-          .then(() => {
-            answerStream?.write(`${JSON.stringify([{ error: '聊天机器人出错了，请稍后再试~' }])}\n\n`);
-          })
+          // .then(() => {
+          //   answerStream?.write(`${JSON.stringify([{ error: '聊天机器人出错了，请稍后再试~' }])}\n\n`);
+          // })
           .catch(() => {
             answerStream?.write(
               `${JSON.stringify([{ error: '聊天机器人出错了，并且转化对话状态失败，请联系管理员~' }])}\n\n`,

@@ -42,7 +42,7 @@ abstract class Elementary {
   }
   connect() {
     const { uri } = this;
-    this.connection = createConnection(uri);
+    this.connection = createConnection(uri, { authSource: 'admin' });
     this.model = this.connection.model(this.collectionName, this.schema);
   }
   checkConnection() {
