@@ -11,6 +11,7 @@
         "dev:node:debug": "pack2 --mode=dev:node --DOT_ENV=development -d",
         "dev:node:prod:debug": "pack2 --mode=dev:node --DOT_ENV=production -d",
         "inset:prompt:db": "pack2 --mode=dev:node --DOT_ENV=development  --config=./pack.script.cjs",
+        "inset:prompt:db:prod": "pack2 --mode=dev:node --DOT_ENV=production  --config=./pack.script.cjs",
         "build:js": "npm run clean:lib && tsc && tsc-alias",
         "eslint": "eslint ./src --fix",
         "test": "jest --passWithNoTests --detectOpenHandles",
