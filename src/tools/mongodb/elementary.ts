@@ -1,5 +1,6 @@
 import { createConnection, Document } from 'mongoose';
 import { sanitizeSlashes } from '../../tools/utils';
+import { authSource } from '../../env';
 import type { Connection, Model, Schema, Types } from 'mongoose';
 export interface ElementaryOptions {
   uri: string;
@@ -42,7 +43,7 @@ abstract class Elementary {
   }
   connect() {
     const { uri } = this;
-    this.connection = createConnection(uri, { authSource: 'admin' });
+    this.connection = createConnection(uri, { ...(authSource ? { authSource } : {}) });
     this.model = this.connection.model(this.collectionName, this.schema);
   }
   checkConnection() {
