@@ -2817,10 +2817,10 @@
   resolved "https://registry.npmjs.org/@leichtgewicht/ip-codec/-/ip-codec-2.0.4.tgz#b2ac626d6cb9c8718ab459166d4bb405b8ffa78b"
   integrity sha512-Hcv+nVC0kZnQ3tD9GVu5xSMR4VVYOteQIr/hwFPVEvPdlXqgGEuRjiheChHgdM+JyqdgNcmzZOX/tnl0JOiI7A==
 
-"@marchyang/pack@1.0.1":
-  version "1.0.1"
-  resolved "https://registry.npmjs.org/@marchyang/pack/-/pack-1.0.1.tgz#54a1bb52096f244158173aac99a4f5ba09413a1e"
-  integrity sha512-0GQfpXt+U26xe5ReeQhwF6dgsDTzRfyjdugKmJHBqxm5onwvS+f8hE65FUNwtZ9IthaLOFRq4D7YNMKbiO7fcA==
+"@marchyang/pack@1.0.3":
+  version "1.0.3"
+  resolved "https://registry.npmjs.org/@marchyang/pack/-/pack-1.0.3.tgz#b328c49f8bc43033542582c1a1b73ca931e26e14"
+  integrity sha512-rQeJ/mg/3bx3webksT7FDA1DS3T7YJMn/G39Jgc9BnWZAhU8o3TD1vV+TumHfW1yaZdZazOIgY2RkXJFDGIFUQ==
   dependencies:
     "@babel/cli" "^7.21.0"
     "@babel/core" "^7.21.4"

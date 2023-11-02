@@ -46,6 +46,14 @@ const createTopicByTopicId = (router: Router) => {
     }
 
     // 由于第一个是系统设置，所以不是用户对话的过程，不参与生成主题
+    if (!data || data.length < 2) {
+      ctx.body = {
+        status: successStatus,
+        data: '',
+      };
+      ctx.status = 200;
+      return await next();
+    }
     const prompt = generateTopic(data![0]!.content, data![1]!.content.slice(0, 100));
     const chat = new Chat({
       stream: false,

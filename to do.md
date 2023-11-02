@@ -11,6 +11,8 @@
 3. pdf 压缩和转移
 4. 处理发送来的空 msg 字符串。
 5. mongodb 文档大小优化
+6. pm2 平滑更新：https://juejin.cn/post/6850418113196851214
+   - 目前 restart 模式也还有问题，logs 会被清空
 
 ### 优化项目
 

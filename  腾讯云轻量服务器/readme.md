@@ -52,4 +52,4 @@
 
 - 启动 chat_server
 
-  `cd /www/wwwroot/chat/chat_server && export OPENAI_API_KEY=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 && pm2 start ecosystem.config.js`
+  `cd /www/wwwroot/chat/chat_server && export OPENAI_API_KEY=sk-xxx && pm2 start ecosystem.config.js`
