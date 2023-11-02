@@ -15,7 +15,7 @@ interface Body {
 
 const validateBodyType = async (body: Body) => {
   const { topicId } = body;
-  if (isString(topicId)) {
+  if (isString(topicId) && topicId) {
     return Promise.resolve();
   }
 
