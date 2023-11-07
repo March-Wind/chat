@@ -50,6 +50,7 @@ class Chat extends IOpenAI {
       ...defaultOptions,
       ...props,
     };
+
     // 设置对应的模型的key
     const apiKey_4_0 = openai_key_40?.split(',') || [];
     const apiKey_3_5 = openai_key_35?.split(',') || [];
@@ -95,13 +96,17 @@ class Chat extends IOpenAI {
   }
   callOpenAi(): Promise<AnswerFormat> {
     const stream = this.stream;
-    const modal = this.model;
+    let model = this.model;
     this.askContent.forEach((item) => {
       console.log(item.content + '\n\n');
     });
+    // to optimize
+    if (/gpt-4/.test(model)) {
+      model = 'gpt-4-1106-preview';
+    }
     const answer = this.openai.createChatCompletion(
       {
-        model: modal,
+        model: model,
         messages: this.askContent,
         stream,
         temperature: this.temperature,

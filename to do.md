@@ -18,6 +18,10 @@
 
 1. 操作数据库的时候(不止 save 是的时候)也应该进行类型校验。[要调研一下 mongoose 的 findOneAndUpdate 等方法进行类型艳艳到什么程度]
 
+## to optimize
+
+代码出有这个标识就是要优化的。
+
 ## finish
 
 1. 将回答的内容进行格式化

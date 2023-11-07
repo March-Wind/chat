@@ -17,11 +17,13 @@ const textDecoder = new TextDecoder();
 const graphemer = new Graphemer();
 type TokenizerResponse = { text: string; tokens: { id: number; idx: number }[] }[];
 
+type Model = 'gpt-4-1106-preview' | TiktokenModel;
 interface Props {
-  model: TiktokenModel; // 模型
+  model: Model; // 模型
 }
+
 class Tokens {
-  private model: TiktokenModel;
+  private model: Model;
   private encoder: Tiktoken;
   private PRICING: Record<string, BN>;
   constructor(props: Props) {
@@ -49,7 +51,8 @@ class Tokens {
         // "<|im_sep|>": 100266,
       });
     }
-
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     this.encoder = encoding_for_model(model);
   }
   tokenizer(text: string): TokenizerResponse {
