@@ -3,16 +3,20 @@ import IOpenAI from './base';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import Tokens from './tokens';
 import { openai_key_40, openai_key_35, proxy } from '../../env';
-import type { CreateChatCompletionResponse, ChatCompletionRequestMessage } from 'openai';
+import type { ChatCompletionMessageParam, ChatCompletionChunk, ChatCompletionRole } from 'openai/src/resources/chat/completions';
+import type { ChatCompletion } from 'openai/resources/index';
 import type { AxiosResponse } from 'axios';
 import type { IncomingMessage } from 'http';
-import type { Stream_CreateChatCompletionResponse } from './types';
+// ChatCompletion, ChatCompletionMessageParam
+
+
+// import type { Stream_ChatCompletion } from './types';
 const agent = proxy ? new SocksProxyAgent(proxy) : undefined;
 export interface Props {
   model?: Tokens['model']; // 模型
   // model?: string;
   stream?: boolean; //是否是流式
-  context?: ChatCompletionRequestMessage[]; // 上下文
+  context?: ChatCompletionMessageParam[]; // 上下文
   temperature?: number; // 回答的温度，也是答案概率程度
   frequency_penalty?: number; // 生成的词，会进行去重处理
   presence_penalty?: number; //
@@ -25,11 +29,11 @@ type AnswerFormat = AnswerFormatNormal | AnswerFormatStream;
 class Chat extends IOpenAI {
   private tokens: Tokens;
   private tokensCount: number;
-  public answer: ChatCompletionRequestMessage & { receiving?: string; id?: string };
+  public answer: ChatCompletionMessageParam & { receiving?: string; id?: string };
   private model: Tokens['model'];
   private stream: boolean;
-  private context: ChatCompletionRequestMessage[]; // 上下文
-  private askContent: ChatCompletionRequestMessage[]; // 提问内容
+  private context: ChatCompletionMessageParam[]; // 上下文
+  private askContent: ChatCompletionMessageParam[]; // 提问内容
   private temperature: number;
   private frequency_penalty: number;
   private presence_penalty: number;
@@ -96,29 +100,35 @@ class Chat extends IOpenAI {
   }
   callOpenAi(): Promise<AnswerFormat> {
     const stream = this.stream;
-    let model = this.model;
+    const model = this.model;
     this.askContent.forEach((item) => {
       console.log(item.content + '\n\n');
     });
     // to optimize
-    if (/gpt-4/.test(model)) {
-      model = 'gpt-4-1106-preview';
-    }
-    const answer = this.openai.createChatCompletion(
+    // if (/gpt-4/.test(model)) {
+    //   model = 'gpt-4-1106-preview';
+    // }
+    debugger
+    const answer = this.openai.chat.completions.create(
       {
         model: model,
         messages: this.askContent,
-        stream,
+        // stream,
         temperature: this.temperature,
         frequency_penalty: this.frequency_penalty || 1,
         presence_penalty: this.presence_penalty || 1,
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        // response_format: { "type": "json_object" },
+        stream
       },
       {
-        httpsAgent: agent,
+        // httpsAgent: agent,
         httpAgent: agent,
         // ...(stream ? { responseType: 'stream' } : {}),
-        responseType: 'stream',
-        proxy: false,
+        // responseType: 'stream',
+        stream: true
+        // proxy: false,
       },
     ) as unknown as Promise<AnswerFormat>;
     // processCb(answer);
@@ -126,7 +136,7 @@ class Chat extends IOpenAI {
   }
   ask(params: {
     question?: string;
-    cb?: (message: CreateChatCompletionResponse[] | 'end' | 'close') => void;
+    cb?: (message: ChatCompletion[] | 'end' | 'close') => void;
     errCb?: (err: any) => void;
   }) {
     const { question, cb, errCb } = params;
@@ -145,6 +155,7 @@ class Chat extends IOpenAI {
         });
       })
       .catch((err) => {
+        debugger
         console.log('class Chat extends IOpenAI内部统计：', err);
       });
     question && this.recordTokensCount(question);
@@ -159,18 +170,19 @@ class Chat extends IOpenAI {
   }
   receivingAnswer(
     resp: AnswerFormat,
-    cb: (response: CreateChatCompletionResponse[] | 'end' | 'close') => void,
+    cb: (response: ChatCompletion[] | 'end' | 'close') => void,
     errCb?: (err: any) => void,
   ) {
     const that = this;
     this.resp = resp;
     // answerPromise.then((resp) => {
+    debugger
     const contentType: AnswerFormat['headers']['Content-Type'] = resp.headers['content-type'] || 'text/event-stream';
 
     type Data<T> = T extends 'text/event-stream'
       ? Buffer
       : T extends 'application/json'
-      ? CreateChatCompletionResponse
+      ? ChatCompletion
       : never;
     type Resp<T> = T extends 'text/event-stream'
       ? AnswerFormatStream
@@ -228,7 +240,7 @@ class Chat extends IOpenAI {
     //   console.log(err)
     // })
   }
-  handleMessage(responseJsons: CreateChatCompletionResponse[] | 'end' | 'close') {
+  handleMessage(responseJsons: ChatCompletion[] | 'end' | 'close') {
     if (responseJsons === 'close' || responseJsons === 'end') {
       return;
     }
@@ -287,7 +299,7 @@ class Chat extends IOpenAI {
       }
     });
   }
-  pushHistoryMsg(responseJson: CreateChatCompletionResponse) {
+  pushHistoryMsg(responseJson: ChatCompletion) {
     const answer = this.answer;
     const {
       choices,
@@ -304,11 +316,11 @@ class Chat extends IOpenAI {
       // json形式一次性返回
       // stream形式返回的结束
       this.answer = {
-        role: role || this.answer.role,
-        content: content || this.answer.receiving,
+        role: role || this.answer.role || 'assistant',
+        content: content || this.answer.receiving || '',
         // id,
       };
-      this.recordTokensCount(content);
+      this.recordTokensCount(content || '');
       return;
     }
     // // json形式一次性返回
@@ -338,13 +350,15 @@ class Chat extends IOpenAI {
     // 包含两种情况
     // 1. 没有对话记录的状态 lastMsg是undefined
     // 2. 问完等待回答的状态，lastMsg的role是user,现在回答的role是assistant
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     this.answer = {
       role,
       id,
-      receiving: content,
+      receiving: content || "",
     };
   }
-  parseStreamMsg(buffers: Buffer): CreateChatCompletionResponse[] {
+  parseStreamMsg(buffers: Buffer): ChatCompletion[] {
     // bug：openai stream模式会返回不完整对象，例如data: {"id":"chatcmpl-88fnMltq7wZuouVuosLcOcJqHRODS","object":"chat.completion.chunk","crea
     // 使用这种补丁的方式，拿到完整的返回，一次性来解析。
     let processString = this.unexpectedReturns.replace(/ /g, '');
@@ -352,37 +366,69 @@ class Chat extends IOpenAI {
 
     const content = buffers.toString().replace(/ /g, '');
     const msgs = (content + processString).split('\n\n').filter((item) => !!item);
-    return msgs
-      .map((item) => {
-        let json: CreateChatCompletionResponse | undefined = undefined;
+    let err = false
+    debugger
+    const result = msgs
+      .map((_item) => {
+        const item = _item.replace(/^data:|\n\ndata:/g, '');
+        let json: ChatCompletion | undefined = undefined;
         if (item === '[DONE]') {
           return '';
         }
         try {
           const jsonStr = item.replace(/^data:/, '');
-          const _json = JSON.parse(jsonStr) as Stream_CreateChatCompletionResponse;
+          const _json = JSON.parse(jsonStr) as ChatCompletionChunk;
           const { delta: message, index, finish_reason } = _json.choices[0]!;
           json = {
             id: _json.id,
+            //@ts-ignore
             object: _json.object,
             created: _json.created,
             model: _json.model,
             choices: [
               {
+                //@ts-ignore
                 message,
                 index,
+                //@ts-ignore
                 finish_reason,
               },
             ],
           };
-          this.unexpectedReturns = '';
         } catch (error) {
-          this.unexpectedReturns += content;
+          if (!err) {
+            this.unexpectedReturns += content;
+          }
+          err = true
           return json;
         }
         return json;
       })
-      .filter((item): item is CreateChatCompletionResponse => !!item);
+      .filter((item): item is ChatCompletion => !!item);
+    debugger
+    if (err) {
+      return [{
+        id: '500',
+        // @ts-ignore
+        object: '500',
+        created: 500,
+        model: 'gpt-4',
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: ''
+            },
+            index: 0,
+            // @ts-ignore
+            finish_reason: undefined,
+          },
+        ],
+      }]
+    } else {
+      this.unexpectedReturns = '';
+      return result;
+    }
   }
   recordTokensCount(text: string) {
     const tokenizer = this.tokens.tokenizer(text);

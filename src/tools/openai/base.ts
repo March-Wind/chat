@@ -1,20 +1,19 @@
 import { AxiosRequestConfig } from 'axios';
 import { SocksProxyAgent } from 'socks-proxy-agent';
-import { OpenAIApi, Configuration } from 'openai';
+import OpenAI from 'openai';
 import { openai_key, proxy } from '../../env';
 const httpsAgent = proxy && new SocksProxyAgent(proxy);
 interface Params {
   apiKey?: string;
 }
 class IOpenAI {
-  openai: OpenAIApi;
+  openai: OpenAI;
   protected axiosRequestConfig: AxiosRequestConfig;
 
   constructor(params: Params) {
-    const configuration = new Configuration({
+    this.openai = new OpenAI({
       apiKey: params.apiKey || openai_key,
     });
-    this.openai = new OpenAIApi(configuration);
     Object.defineProperty(this, 'axiosRequestConfig', {
       enumerable: true,
       configurable: false,

@@ -3,10 +3,11 @@ import Elementary, { preCheckConnection } from '../elementary';
 import awaitWrap from '../../await-wrap';
 import { mongodb_uri } from '../../../env';
 import type { Document, Types, Model, UpdateWriteOpResult, PipelineStage } from 'mongoose';
-import type { ChatCompletionRequestMessageRoleEnum } from 'openai';
+import type { ChatCompletionRole } from 'openai/src/resources/chat/completions';
+
 import type { ElementaryOptions } from '../elementary';
 export interface Message {
-  role: ChatCompletionRequestMessageRoleEnum;
+  role: ChatCompletionRole;
   content: string;
 }
 export type MessageSchema = Message;
@@ -186,10 +187,10 @@ class HistoryMessage extends Elementary {
     return await model.updateOne(
       { uuid: options.uuid },
       {
-        $push: { topics: topic }, // 添加到 topics 数组
-        $setOnInsert: { uuid: options.uuid }, // 在插入时设置 uuid.(插入时才会生效)
+        $push: { topics: topic }, // 添加到文档的 topics 数组
+        $setOnInsert: { uuid: options.uuid }, // 在增加一个文档时设置 uuid.(插入文档时才会生效，和upsert联动)
       },
-      { upsert: true },
+      { upsert: true }, // 没有该文档就增加一个文档
     );
   }
 
