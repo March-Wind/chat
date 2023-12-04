@@ -39,6 +39,7 @@ const deleteTopic = (router: Router) => {
         msg: err,
       };
       ctx.status = 500;
+      await history.close();
       return;
     }
     if (!data?.acknowledged || data.modifiedCount !== 1) {
@@ -47,6 +48,7 @@ const deleteTopic = (router: Router) => {
         msg: '删除操作出现错误',
       };
       ctx.status = 500;
+      await history.close();
       return;
     }
 
@@ -56,6 +58,7 @@ const deleteTopic = (router: Router) => {
       data: true,
     };
     ctx.status = 200;
+    await history.close();
     return await next();
   });
 };

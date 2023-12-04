@@ -37,7 +37,9 @@ const process = async (body: Body) => {
         return Promise.reject('密码错误');
       }
     }
-    return Promise.resolve(data);
+    const _data = UserBase.transformDocument(data);
+    await userBase.close();
+    return Promise.resolve(_data);
   }
 };
 const loginUser = (router: Router) => {

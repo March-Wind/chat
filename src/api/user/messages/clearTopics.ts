@@ -17,6 +17,7 @@ const clearTopics = (router: Router) => {
         msg: err,
       };
       ctx.status = 500;
+      await history.close();
       return;
     }
     if (!data?.acknowledged) {
@@ -25,6 +26,7 @@ const clearTopics = (router: Router) => {
         msg: '删除操作出现错误',
       };
       ctx.status = 500;
+      await history.close();
       return;
     }
 
@@ -34,6 +36,7 @@ const clearTopics = (router: Router) => {
       data: true,
     };
     ctx.status = 200;
+    await history.close();
     return await next();
   });
 };

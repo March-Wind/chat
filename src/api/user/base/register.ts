@@ -44,7 +44,7 @@ const process = async (user: UserSchema) => {
   if (err) {
     return Promise.reject(err);
   }
-  userBase.close();
+  await userBase.close();
   return Promise.resolve('注册成功');
 };
 

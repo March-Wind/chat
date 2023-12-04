@@ -49,14 +49,17 @@ export const padContext = async (uuid: string, context: Message[], prePrompt?: B
     const userPromptDb = new UserPrompt({ uuid });
     const [result, err] = await awaitWrap(userPromptDb.findOne(prePrompt.id));
     if (err) {
+      await userPromptDb.close();
       return Promise.reject(err);
     }
     if (!result) {
+      await userPromptDb.close();
       return Promise.reject('没有找到预设提示词');
     }
     type D = (typeof result)[0]['context'] & { _id: mongoose.Types.ObjectId };
     const _prePrompt = UserPrompt.transform(result![0]!.context as D, true);
     const modelConfig = result![0]!.modelConfig;
+    await userPromptDb.close();
     return {
       context: ([] as Message[]).concat(..._prePrompt).concat(context),
       ...modelConfig,
@@ -84,6 +87,7 @@ export const padContext = async (uuid: string, context: Message[], prePrompt?: B
       },
     });
     const modelConfig = _data!.modelConfig;
+    await prompt.close();
     return {
       context: ([] as Message[]).concat(..._data.context).concat(context),
       ...modelConfig,
@@ -143,6 +147,7 @@ export const getContext = async (params: GetContextParams) => {
         prePrompt,
       }),
     );
+    await historyDb.close();
     if (err) {
       return Promise.reject(err);
     }
@@ -186,6 +191,7 @@ export const listenClientEvent = (answerStream: PassThrough, close: Function) =>
 const pushMessage = async (uuid: string, topicId: string, message: Message) => {
   const historyDb = new HistoryMessage({ uuid });
   const [result, err] = await awaitWrap(historyDb.pushMessage(topicId, message));
+  await historyDb.close();
   if (err || !result?.acknowledged) {
     return Promise.reject();
   }

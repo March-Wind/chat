@@ -96,6 +96,7 @@ const createTopicByTopicId = (router: Router) => {
           console.log(err);
         });
     });
+    await historyDb.close();
     return await next();
   });
 };

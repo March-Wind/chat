@@ -56,6 +56,7 @@ const deleteTopic = (router: Router) => {
       data: true,
     };
     ctx.status = 200;
+    await history.close();
     return await next();
   });
 };

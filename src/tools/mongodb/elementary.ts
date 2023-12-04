@@ -43,7 +43,9 @@ abstract class Elementary {
   }
   connect() {
     const { uri } = this;
+    // authSource这里代表验证的数据库是什么，一般是admin,在admin里创建各种权限的用户
     this.connection = createConnection(uri, { ...(authSource ? { authSource } : {}) });
+    // 创建集合模型
     this.model = this.connection.model(this.collectionName, this.schema);
   }
   checkConnection() {
@@ -56,8 +58,22 @@ abstract class Elementary {
     this.connection?.on('error', cb);
   }
   async close() {
-    await this.connection?.close();
-    this.connection = null;
+    if (this.connection?.readyState === 1) {
+      // 已经连接
+      await this.connection?.close();
+      this.connection = null;
+    } else if (this.connection?.readyState === 2) {
+      // 正在连接
+      return new Promise((resolve, reject) => {
+        this.connection?.on('connected', () => {
+          this.connection?.close().then(resolve).catch(reject);
+          this.connection = null;
+        });
+      });
+    } else {
+      this.connection = null;
+      return Promise.resolve();
+    }
   }
   async drop() {
     this.checkConnection();

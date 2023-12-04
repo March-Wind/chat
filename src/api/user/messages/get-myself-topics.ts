@@ -16,6 +16,7 @@ const getMyselfTopics = (router: Router) => {
         msg: '查询失败',
       };
       ctx.status = 500;
+      await history.close();
       return;
     }
     ctx.body = {
@@ -23,6 +24,7 @@ const getMyselfTopics = (router: Router) => {
       data,
     };
     ctx.status = 200;
+    await history.close();
     return await next();
   });
 };

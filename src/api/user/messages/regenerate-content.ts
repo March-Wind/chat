@@ -28,7 +28,9 @@ const validateType = async (body: Body) => {
 
 const replaceMessage = async (uuid: string, topicId: string, removeMessageIndex: number, newMsg: Message) => {
   const historyDb = new HistoryMessage({ uuid });
-  return await historyDb.replaceMessages(topicId, newMsg, undefined, removeMessageIndex);
+  const result = await historyDb.replaceMessages(topicId, newMsg, undefined, removeMessageIndex);
+  await historyDb.close();
+  return result;
 };
 const regenerateContent = (router: Router) => {
   router.post('/regenerate-content', checkAuth, async (ctx, next) => {
