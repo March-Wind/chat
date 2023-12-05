@@ -1,14 +1,13 @@
-import Stream from 'stream';
 import IOpenAI from './base';
 import { SocksProxyAgent } from 'socks-proxy-agent';
 import Tokens from './tokens';
 import { openai_key_40, openai_key_35, proxy } from '../../env';
-import type { ChatCompletionMessageParam, ChatCompletionChunk, ChatCompletionRole } from 'openai/src/resources/chat/completions';
+import type { ChatCompletionMessageParam, ChatCompletionChunk } from 'openai/src/resources/chat/completions';
+import type { Stream } from 'openai/src/streaming';
 import type { ChatCompletion } from 'openai/resources/index';
 import type { AxiosResponse } from 'axios';
 import type { IncomingMessage } from 'http';
 // ChatCompletion, ChatCompletionMessageParam
-
 
 // import type { Stream_ChatCompletion } from './types';
 const agent = proxy ? new SocksProxyAgent(proxy) : undefined;
@@ -98,7 +97,7 @@ class Chat extends IOpenAI {
       },
     });
   }
-  callOpenAi(): Promise<AnswerFormat> {
+  async callOpenAi() {
     const stream = this.stream;
     const model = this.model;
     this.askContent.forEach((item) => {
@@ -108,58 +107,72 @@ class Chat extends IOpenAI {
     // if (/gpt-4/.test(model)) {
     //   model = 'gpt-4-1106-preview';
     // }
-    debugger
-    const answer = this.openai.chat.completions.create(
+    const answer = await this.openai.chat.completions.create(
       {
         model: model,
         messages: this.askContent,
-        // stream,
+        stream,
         temperature: this.temperature,
         frequency_penalty: this.frequency_penalty || 1,
         presence_penalty: this.presence_penalty || 1,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         // response_format: { "type": "json_object" },
-        stream
+        // stream: true
       },
       {
         // httpsAgent: agent,
         httpAgent: agent,
         // ...(stream ? { responseType: 'stream' } : {}),
         // responseType: 'stream',
-        stream: true
+        stream: true,
         // proxy: false,
       },
-    ) as unknown as Promise<AnswerFormat>;
+    );
     // processCb(answer);
     return answer;
+    // for await (const chunk of answer) {
+    //   console.log(chunk);
+    //   debugger
+    // }
   }
-  ask(params: {
+  async ask(params: {
     question?: string;
-    cb?: (message: ChatCompletion[] | 'end' | 'close') => void;
+    streamCb?: (data: ChatCompletionChunk | 'end' | 'close') => void;
+    cb?: (data: ChatCompletion) => void;
     errCb?: (err: any) => void;
   }) {
-    const { question, cb, errCb } = params;
+    const { question, cb, streamCb } = params;
     question &&
       this.askContent.push({
         role: 'user',
         content: question,
       });
-    const answer = this.callOpenAi();
-    answer
-      .then((resp) => {
-        this.receivingAnswer(resp, (response) => {
-          this.handleMessage(response);
-          // this.pushHistoryMsg(response);
-          cb?.(response);
-        });
-      })
-      .catch((err) => {
-        debugger
-        console.log('class Chat extends IOpenAI内部统计：', err);
-      });
-    question && this.recordTokensCount(question);
-    return answer;
+    const answer = await this.callOpenAi();
+    if (this.stream) {
+      for await (const chunk of answer as unknown as Stream<ChatCompletionChunk>) {
+        this.handleMessage(chunk);
+        streamCb?.(chunk);
+      }
+    } else {
+      this.handleMessage(answer as ChatCompletion);
+      cb?.(answer as ChatCompletion);
+    }
+
+    // answer
+    //   .then((resp) => {
+    //     this.receivingAnswer(resp, (response) => {
+    //       this.handleMessage(response);
+    //       // this.pushHistoryMsg(response);
+    //       cb?.(response);
+    //     });
+    //   })
+    //   .catch((err) => {
+    //     debugger
+    //     console.log('class Chat extends IOpenAI内部统计：', err);
+    //   });
+    // question && this.recordTokensCount(question);
+    // return answer;
   }
   close() {
     this.resp?.data.destroy();
@@ -168,153 +181,134 @@ class Chat extends IOpenAI {
     }
     this.resp = undefined;
   }
-  receivingAnswer(
-    resp: AnswerFormat,
-    cb: (response: ChatCompletion[] | 'end' | 'close') => void,
-    errCb?: (err: any) => void,
-  ) {
-    const that = this;
-    this.resp = resp;
-    // answerPromise.then((resp) => {
-    debugger
-    const contentType: AnswerFormat['headers']['Content-Type'] = resp.headers['content-type'] || 'text/event-stream';
+  // receivingAnswer(
+  //   resp: AnswerFormat,
+  //   cb: (response: ChatCompletion[] | 'end' | 'close') => void,
+  //   errCb?: (err: any) => void,
+  // ) {
+  //   const that = this;
+  //   this.resp = resp;
+  //   // answerPromise.then((resp) => {
+  //   debugger
+  //   const contentType: AnswerFormat['headers']['Content-Type'] = resp.headers['content-type'] || 'text/event-stream';
 
-    type Data<T> = T extends 'text/event-stream'
-      ? Buffer
-      : T extends 'application/json'
-      ? ChatCompletion
-      : never;
-    type Resp<T> = T extends 'text/event-stream'
-      ? AnswerFormatStream
-      : T extends 'application/json'
-      ? AnswerFormatNormal
-      : never;
-    switch (contentType) {
-      case 'text/event-stream': {
-        type ContentType = typeof contentType;
-        (resp as Resp<ContentType>).data.on('data', (data: Data<ContentType>) => {
-          const response = that.parseStreamMsg(data);
-          cb(response);
-        });
-        (resp as Resp<ContentType>).data.on('error', (err) => {
-          errCb?.(err);
-        });
-        (resp as Resp<ContentType>).data.on('end', () => {
-          cb('end');
-        });
-        (resp as Resp<ContentType>).data.on('close', () => {
-          cb('close');
-        });
-        break;
-      }
-      case 'application/json': {
-        type ContentType = typeof contentType;
-        // cb([(resp as Resp<ContentType>).data]);
-        let result = '';
-        (resp as Resp<ContentType>).data.on('data', (data: Buffer) => {
-          // const response = that.parseStreamMsg(data);
-          try {
-            result += data.toString();
-          } catch (error) {
-            console.log(error);
-          }
-        });
-        (resp as Resp<ContentType>).data.on('end', () => {
-          try {
-            cb([JSON.parse(result)]);
-          } catch (error) {
-            console.log(error);
-          }
-        });
-        (resp as Resp<ContentType>).data.on('error', (err) => {
-          errCb?.(err);
-        });
-        (resp as Resp<ContentType>).data.on('close', () => {
-          cb('close');
-        });
+  //   type Data<T> = T extends 'text/event-stream'
+  //     ? Buffer
+  //     : T extends 'application/json'
+  //     ? ChatCompletion
+  //     : never;
+  //   type Resp<T> = T extends 'text/event-stream'
+  //     ? AnswerFormatStream
+  //     : T extends 'application/json'
+  //     ? AnswerFormatNormal
+  //     : never;
+  //   switch (contentType) {
+  //     case 'text/event-stream': {
+  //       type ContentType = typeof contentType;
+  //       (resp as Resp<ContentType>).data.on('data', (data: Data<ContentType>) => {
+  //         const response = that.parseStreamMsg(data);
+  //         cb(response);
+  //       });
+  //       (resp as Resp<ContentType>).data.on('error', (err) => {
+  //         errCb?.(err);
+  //       });
+  //       (resp as Resp<ContentType>).data.on('end', () => {
+  //         cb('end');
+  //       });
+  //       (resp as Resp<ContentType>).data.on('close', () => {
+  //         cb('close');
+  //       });
+  //       break;
+  //     }
+  //     case 'application/json': {
+  //       type ContentType = typeof contentType;
+  //       // cb([(resp as Resp<ContentType>).data]);
+  //       let result = '';
+  //       (resp as Resp<ContentType>).data.on('data', (data: Buffer) => {
+  //         // const response = that.parseStreamMsg(data);
+  //         try {
+  //           result += data.toString();
+  //         } catch (error) {
+  //           console.log(error);
+  //         }
+  //       });
+  //       (resp as Resp<ContentType>).data.on('end', () => {
+  //         try {
+  //           cb([JSON.parse(result)]);
+  //         } catch (error) {
+  //           console.log(error);
+  //         }
+  //       });
+  //       (resp as Resp<ContentType>).data.on('error', (err) => {
+  //         errCb?.(err);
+  //       });
+  //       (resp as Resp<ContentType>).data.on('close', () => {
+  //         cb('close');
+  //       });
 
-        break;
-      }
-    }
-    // }).catch((err) => {
-    //   console.log(err)
-    // })
-  }
-  handleMessage(responseJsons: ChatCompletion[] | 'end' | 'close') {
-    if (responseJsons === 'close' || responseJsons === 'end') {
+  //       break;
+  //     }
+  //   }
+  //   // }).catch((err) => {
+  //   //   console.log(err)
+  //   // })
+  // }
+  handleMessage(msgItem: ChatCompletionChunk | ChatCompletion | 'end' | 'close') {
+    if (msgItem === 'close' || msgItem === 'end') {
       return;
     }
-    const _this = this;
-    responseJsons.forEach((item) => {
-      const {
-        choices,
-        // id,
-        // object, model
-      } = item;
-      const {
-        // message,
-        // index,
-        finish_reason,
-      } = choices[0]!;
-      // 针对返回类型分别处理
-      switch (finish_reason) {
-        case 'function_call':
-          // 模型决定调用函数
-          break;
-        case 'content_filter':
-          // 有害输出,直接结束
-          break;
-        case 'length': {
-          // 超过上下文
-          // 带上返回继续请求会返回400
-          // 暂时处理的方法是让用户直接超出上下文的限制了，开启新的对话
-
-          // const _context = [...this.context];
-          // _context.push({
-          //   role: this.answer.role,
-          //   content: this.answer.receiving
-          // })
-          // const _anser = new Chat({
-          //   model: this.model,
-          //   stream: true,
-          //   context: _context,
-          //   temperature: this.temperature,
-          //   frequency_penalty: this.frequency_penalty,
-          //   presence_penalty: this.presence_penalty
-          // })
-          // _anser.ask({
-          //   cb(message) {
-          //     _this.handleMessage(message);
-          //   }
-          // })
-          return '';
-        }
-        case 'stop':
-        // 已经返回完整信息，正常结束
-        // eslint-disable-next-line no-fallthrough
-        case null:
-          // API 响应仍在进行中或不完整
-          this.pushHistoryMsg(item);
-          break;
+    const {
+      choices,
+      // id,
+      // object, model
+    } = msgItem;
+    const {
+      // message,
+      // index,
+      finish_reason,
+    } = choices[0]!;
+    // 针对返回类型分别处理
+    switch (finish_reason) {
+      case 'function_call':
+        // 模型决定调用函数
+        break;
+      case 'content_filter':
+        // 有害输出,直接结束
+        break;
+      case 'length': {
+        // 超过上下文
+        // 带上返回继续请求会返回400
+        return '';
       }
-    });
+      case 'stop':
+      // 已经返回完整信息，正常结束
+      // eslint-disable-next-line no-fallthrough
+      case null:
+        // API 响应仍在进行中或不完整
+        this.pushHistoryMsg(msgItem);
+        break;
+    }
   }
-  pushHistoryMsg(responseJson: ChatCompletion) {
+  pushHistoryMsg(msgItem: ChatCompletionChunk | ChatCompletion) {
     const answer = this.answer;
     const {
       choices,
       id,
       // object, model
-    } = responseJson;
+    } = msgItem;
     const {
-      message,
+      // delta: message1,
+      // message,
       // index,
       finish_reason,
     } = choices[0]!;
-    const { role, content = '' } = message!;
+    const message = (choices[0] as ChatCompletionChunk.Choice).delta || (choices[0] as ChatCompletion.Choice).message;
+    const { role, content = '' } = message;
     if (finish_reason === 'stop' || finish_reason === 'length') {
       // json形式一次性返回
       // stream形式返回的结束
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       this.answer = {
         role: role || this.answer.role || 'assistant',
         content: content || this.answer.receiving || '',
@@ -353,83 +347,83 @@ class Chat extends IOpenAI {
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
     this.answer = {
-      role,
+      role: role || this.answer.role || 'assistant',
       id,
-      receiving: content || "",
+      receiving: content || '',
     };
   }
-  parseStreamMsg(buffers: Buffer): ChatCompletion[] {
-    // bug：openai stream模式会返回不完整对象，例如data: {"id":"chatcmpl-88fnMltq7wZuouVuosLcOcJqHRODS","object":"chat.completion.chunk","crea
-    // 使用这种补丁的方式，拿到完整的返回，一次性来解析。
-    let processString = this.unexpectedReturns.replace(/ /g, '');
-    processString = processString.replace(/^data:|\n\ndata:/g, '\n\n');
+  // parseStreamMsg(buffers: Buffer): ChatCompletion[] {
+  //   // bug：openai stream模式会返回不完整对象，例如data: {"id":"chatcmpl-88fnMltq7wZuouVuosLcOcJqHRODS","object":"chat.completion.chunk","crea
+  //   // 使用这种补丁的方式，拿到完整的返回，一次性来解析。
+  //   let processString = this.unexpectedReturns.replace(/ /g, '');
+  //   processString = processString.replace(/^data:|\n\ndata:/g, '\n\n');
 
-    const content = buffers.toString().replace(/ /g, '');
-    const msgs = (content + processString).split('\n\n').filter((item) => !!item);
-    let err = false
-    debugger
-    const result = msgs
-      .map((_item) => {
-        const item = _item.replace(/^data:|\n\ndata:/g, '');
-        let json: ChatCompletion | undefined = undefined;
-        if (item === '[DONE]') {
-          return '';
-        }
-        try {
-          const jsonStr = item.replace(/^data:/, '');
-          const _json = JSON.parse(jsonStr) as ChatCompletionChunk;
-          const { delta: message, index, finish_reason } = _json.choices[0]!;
-          json = {
-            id: _json.id,
-            //@ts-ignore
-            object: _json.object,
-            created: _json.created,
-            model: _json.model,
-            choices: [
-              {
-                //@ts-ignore
-                message,
-                index,
-                //@ts-ignore
-                finish_reason,
-              },
-            ],
-          };
-        } catch (error) {
-          if (!err) {
-            this.unexpectedReturns += content;
-          }
-          err = true
-          return json;
-        }
-        return json;
-      })
-      .filter((item): item is ChatCompletion => !!item);
-    debugger
-    if (err) {
-      return [{
-        id: '500',
-        // @ts-ignore
-        object: '500',
-        created: 500,
-        model: 'gpt-4',
-        choices: [
-          {
-            message: {
-              role: 'assistant',
-              content: ''
-            },
-            index: 0,
-            // @ts-ignore
-            finish_reason: undefined,
-          },
-        ],
-      }]
-    } else {
-      this.unexpectedReturns = '';
-      return result;
-    }
-  }
+  //   const content = buffers.toString().replace(/ /g, '');
+  //   const msgs = (content + processString).split('\n\n').filter((item) => !!item);
+  //   let err = false
+  //   debugger
+  //   const result = msgs
+  //     .map((_item) => {
+  //       const item = _item.replace(/^data:|\n\ndata:/g, '');
+  //       let json: ChatCompletion | undefined = undefined;
+  //       if (item === '[DONE]') {
+  //         return '';
+  //       }
+  //       try {
+  //         const jsonStr = item.replace(/^data:/, '');
+  //         const _json = JSON.parse(jsonStr) as ChatCompletionChunk;
+  //         const { delta: message, index, finish_reason } = _json.choices[0]!;
+  //         json = {
+  //           id: _json.id,
+  //           //@ts-ignore
+  //           object: _json.object,
+  //           created: _json.created,
+  //           model: _json.model,
+  //           choices: [
+  //             {
+  //               //@ts-ignore
+  //               message,
+  //               index,
+  //               //@ts-ignore
+  //               finish_reason,
+  //             },
+  //           ],
+  //         };
+  //       } catch (error) {
+  //         if (!err) {
+  //           this.unexpectedReturns += content;
+  //         }
+  //         err = true
+  //         return json;
+  //       }
+  //       return json;
+  //     })
+  //     .filter((item): item is ChatCompletion => !!item);
+  //   debugger
+  //   if (err) {
+  //     return [{
+  //       id: '500',
+  //       // @ts-ignore
+  //       object: '500',
+  //       created: 500,
+  //       model: 'gpt-4',
+  //       choices: [
+  //         {
+  //           message: {
+  //             role: 'assistant',
+  //             content: ''
+  //           },
+  //           index: 0,
+  //           // @ts-ignore
+  //           finish_reason: undefined,
+  //         },
+  //       ],
+  //     }]
+  //   } else {
+  //     this.unexpectedReturns = '';
+  //     return result;
+  //   }
+  // }
   recordTokensCount(text: string) {
     const tokenizer = this.tokens.tokenizer(text);
     this.tokensCount += this.tokens.tokensCount(tokenizer);

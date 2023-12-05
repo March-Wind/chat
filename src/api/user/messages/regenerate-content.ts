@@ -106,6 +106,8 @@ const regenerateContent = (router: Router) => {
       ctx.status = 500;
       return;
     }
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const chat = new Chat({ ...userModalConfig, ...config });
     let stopFlag = false;
     const stopFn = () => {
@@ -134,6 +136,8 @@ const regenerateContent = (router: Router) => {
         role: chat.answer.role,
         content: chat.answer.content || '',
       };
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
       replaceMessage(ctx.uuid, topicId, _reserveIndex, message)
         .catch((err) => {
           console.log(err);
@@ -145,18 +149,23 @@ const regenerateContent = (router: Router) => {
     };
     chat
       .ask({
-        cb(message) {
-          if (message === 'end') {
-            answerStream.end();
+        streamCb(data) {
+          if (data === 'end' || data === 'close') {
+            // 由于在 finish_reason === 'stop'做了结束，所以这里直接返回就行了
             return;
           }
-          if (message === 'close') {
-            answerStream.end();
-            return;
-          }
+          const lastChoice = data.choices[data.choices.length - 1]!;
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          data.choices = data.choices.map((item) => {
+            item.message = item.delta;
+            delete item.delta;
+            return item;
+          });
           // 还是以\n\n分隔，然后在客户端处理的时候，进行\n\n分隔，然后将分隔的数组遍历一次，和前面的元素加起来进行JSON.parse,如果能parse，就是一个对象，如果不能parse，就是一个这个对象的一部分，继续找遍历后面元素，找到能parse的完整的对象
-          answerStream.write(`${JSON.stringify(message)}\n\n`);
-          if (message[message.length - 1]?.choices[0]?.finish_reason === 'length') {
+          // console.log(message[message.length - 1]?.choices[0]?.message?.content)
+          answerStream.write(`${JSON.stringify(data)}\n\n`);
+          if (lastChoice.finish_reason === 'length') {
             answerStream?.write(
               `${JSON.stringify([
                 { error: '对话上下文超出限制，请重新开始一个对话，站长在找好的处理方式，敬请期待！' },
@@ -164,7 +173,7 @@ const regenerateContent = (router: Router) => {
             );
             stopFn();
           }
-          if (message[message.length - 1]?.choices[0]?.finish_reason === 'stop') {
+          if (lastChoice.finish_reason === 'stop') {
             stopFn();
           }
         },

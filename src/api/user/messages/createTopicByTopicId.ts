@@ -67,10 +67,7 @@ const createTopicByTopicId = (router: Router) => {
         .ask({
           question: prompt,
           cb: (data) => {
-            if (data === 'close' || data === 'end') {
-              return;
-            }
-            const content = data[0];
+            const content = data;
             const title = content?.choices[0]?.message?.content || '';
             historyDb
               .setTopicTitle(topicId, title)
