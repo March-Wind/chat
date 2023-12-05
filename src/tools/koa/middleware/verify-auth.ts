@@ -24,11 +24,10 @@ const validateUser = async (params: JwtPayload) => {
   const { email, name, uuid } = params;
   const userBaseInfo = new UserBaseInfo();
   const data = await userBaseInfo.searchUserByEmail(email, ['uuid', 'name']);
-  if (data?.name?.firstName === name?.firstName && data?.name?.lastName === name?.lastName && data?.uuid === uuid) {
-    return true;
-  } else {
-    return false;
-  }
+  const flag =
+    data?.name?.firstName === name?.firstName && data?.name?.lastName === name?.lastName && data?.uuid === uuid;
+  await userBaseInfo.close();
+  return flag;
 };
 const errBody = (ctx: Context, msg: string) => {
   ctx.body = {
