@@ -155,10 +155,12 @@ const regenerateContent = (router: Router) => {
             return;
           }
           const lastChoice = data.choices[data.choices.length - 1]!;
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
           data.choices = data.choices.map((item) => {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             item.message = item.delta;
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
             delete item.delta;
             return item;
           });
