@@ -7,12 +7,13 @@
 
 - 步骤参考：https://cloud.tencent.com/document/product/400/35244
 - 配置
+
   ```
   server {
   listen 80;
   server_name qunyangbang.cn www.qunyangbang.cn;
   root /www/wwwroot; # 重定向所有 HTTP 请求到 HTTPS
-  return 301 https://$server_name$request_uri;
+  return 307 https://$server_name$request_uri;
 
       }
           server {
@@ -21,9 +22,9 @@
               #请填写绑定证书的域名
               server_name cloud.tencent.com;
               #请填写证书文件的相对路径或绝对路径
-              ssl_certificate /www/server/panel/vhost/cert/qunyangbang.cn_bundle.crt;
+              ssl_certificate /www/ssl_cert/qunyangbang.cn_bundle.crt;
               #请填写私钥文件的相对路径或绝对路径
-              ssl_certificate_key /www/server/panel/vhost/cert/qunyangbang.cn.key;
+              ssl_certificate_key /www/ssl_cert/qunyangbang.cn.key;
               ssl_session_timeout 5m;
               #请按照以下协议配置
               ssl_protocols TLSv1.2 TLSv1.3;
@@ -35,6 +36,8 @@
                   index  index.html index.htm;
               }
           }
+
+  ```
 
   ```
 

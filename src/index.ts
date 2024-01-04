@@ -61,6 +61,9 @@ app.use(
         // return true;
         return 'http://127.0.0.1:4000';
       }
+      if (ctx.request.headers.origin === 'https://www.qunyangbang.cn') {
+        return 'https://www.qunyangbang.cn';
+      }
       return false;
     }, // 允许所有来源的请求访问
     // origin: 'http://localhost:4000',
