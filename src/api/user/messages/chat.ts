@@ -276,6 +276,7 @@ const playChat = async (router: Router) => {
     const chat = new Chat({ ...userModalConfig, ...config });
     let stopFlag = false;
     const stopFn = () => {
+      chat.close();
       if (stopFlag) {
         return;
       }
@@ -354,8 +355,7 @@ const playChat = async (router: Router) => {
         answerStream?.write(`${JSON.stringify([{ error: '对话接口出错，请稍后再试~' }])}\n\n`);
         stopFn();
       });
-    listenClientEvent(answerStream, () => {
-      chat.close();
+    listenClientEvent(answerStream, async () => {
       stopFn();
     });
     return await next();

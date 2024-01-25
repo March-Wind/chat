@@ -67,6 +67,9 @@ app.use(
         // return true;
         return 'http://127.0.0.1:4000';
       }
+      if (ctx.request.headers.referer && /https:\/\/www\.qunyangbang\.cn(?:\/)$/.test(ctx.request.headers.referer)) {
+        return 'https://www.qunyangbang.cn';
+      }
       return false;
     }, // 允许所有来源的请求访问
     // origin: 'http://localhost:4000',
@@ -121,3 +124,75 @@ console.log('开始监听');
 // console.log(tokens)
 // // (new TextDecoder()).decode(encoder.decode(tokens))
 // encoder.free();
+
+// import fetch from 'node-fetch'
+// // 6rq7FePnQgE2CgcXCztMCkV2BxR/OkJ6MAoHEAVGPAkyfHEYDUVMSnB5dUVtbQ==
+// // I2Y2tINHAUEUNDEpNjcPSmdIMSpCNgE6EjQxLjhKf0kQQkcmMElwSnpCcVdORw==
+// //           http://175.24.175.14:18081/copilot/token/897D476862D844B98B1D408EF132B80F
+// const token = '6rq7FePnQgE2CgcXCztMCkV2BxR/OkJ6MAoHEAVGPAkyfHEYDUVMSnB5dUVtbQ=='
+// const url = 'http://175.24.175.14:18081/copilot/token/897D476862D844B98B1D408EF132B80F'
+// const result = await fetch(url, {
+//   headers: {
+//     Authorization: `token ${token}`, ...{ "Editor-Version": "vscode/1.84.11112", "Editor-Plugin-Version": "copilot-chat/0.10.1" }, ...{
+//       'editor-version': 'vscode/1.84.2',
+//       'editor-plugin-version': 'copilot/1.136.0',
+//       'host': '175.24.175.14:18081',
+//       'user-agent': 'GithubCopilot/1.136.0',
+//       'accept': '*/*'
+//     }
+//   }
+// })
+// console.log(result)
+// debugger
+// const result2 = await result.json()
+// console.log(result2)
+// debugger
+
+// tid=2a8d63fb23813529110f5bda308aa705;exp=1706095709;sku=free_educational;st=dotcom;chat=1;8kp=1:a8cd8de7dfa32e0257558a9f9c9cdaaf3fe06f53839a9c66cf429cf1dacb2e94
+// tid=cdddeca8d9eabfa89f12e6026aa249a8;exp=1704706714;sku=free_educational;st=dotcom;chat=1;8kp=1:37024b0fa09b9daebe6a175ff68235305eed3b1b25587d20bceec46af8e1f713
+// tid=0eb0859a0aa98600dfe471a1c0bcb7a1;exp=1704768997;sku=free_educational;st=dotcom;chat=1;8kp=1:c047829f0d63f150dc8d855ce1480524fbc5a0e29aec674c1246362eef22016a
+// tid=d4b4923c4ef789275c4cf4124066f247;exp=1704767986;sku=free_educational;st=dotcom;chat=1;8kp=1:1300c2ce6aa4d46afa4c92999a41583506fff70c9f2f2882d1e3c293eef3c879
+// tid=478134119bd19267cd93c42724c932d7;exp=1706095892;sku=free_educational;st=dotcom;chat=1;8kp=1:f0d205c6e6ca9489ff38fedcc8db544807704955e080605fa1c39ee26899dbbb
+// tid=478134119bd19267cd93c42724c932d7;exp=1706095131;sku=free_educational;st=dotcom;chat=1;8kp=1:99919714ff55d4bec8d058e54ae51dc298320987edfb5175ba9acf262474fe5c
+// import { CopilotAPI } from "./tools/openai/base";
+
+// const copilot = new CopilotAPI({
+//   apiKey: "tid=478134119bd19267cd93c42724c932d7;exp=1706095131;sku=free_educational;st=dotcom;chat=1;8kp=1:99919714ff55d4bec8d058e54ae51dc298320987edfb5175ba9acf262474fe5c"
+//   // apiKey: 'tid=2a8d63fb23813529110f5bda308aa705;exp=1706094927;sku=free_educational;st=dotcom;chat=1;8kp=1:ea26c0504cec13f60f73d945dc88a74b1fdda325ff692296a9a101b9cc0ea130',
+// });
+// const answer = await copilot.openai.chat.completions.create({
+//   "messages": [
+//     {
+//       "role": "user",
+//       "content": "你好"
+//     },
+//   ],
+//   "model": "gpt-4",
+//   "max_tokens": 7767,
+//   "temperature": 0.1,
+//   "top_p": 1,
+//   "n": 1,
+//   "stream": true
+// }, {
+//   headers: copilot.headers as unknown as Record<string, string>,
+//   stream: true
+// })
+
+// for await (const chunk of answer) {
+//   console.log(chunk.choices[0]?.delta.content)
+// }
+
+// import apiChannelScheduler from "./tools/openai/apiChannelScheduler";
+
+// const a1 = apiChannelScheduler.returnAPICaller().then((res) => {
+//   console.log('a1', res)
+// })
+// const a2 = apiChannelScheduler.returnAPICaller().then((res) => {
+//   console.log('a2', res)
+// })
+// const a3 = apiChannelScheduler.returnAPICaller().then((res) => {
+//   console.log('a3', res)
+// })
+
+// await Promise.all([a1, a2, a3])
+// debugger

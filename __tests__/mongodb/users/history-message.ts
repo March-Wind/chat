@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import HistoryMessage from '@/tools/mongodb/users/history-message';
 import awaitWrap from '@/tools/await-wrap';
+
 describe('操作topic的方法', () => {
   let mongoServer: MongoMemoryServer;
   let historyMessageDb: HistoryMessage;
@@ -37,7 +38,7 @@ describe('操作topic的方法', () => {
     expect(result?.acknowledged).toBeTruthy();
     expect(result?.upsertedCount).toBe(1);
 
-    const [data, err2] = await awaitWrap(historyMessageDb.queryTopicById(_id.toString()));
+    await awaitWrap(historyMessageDb.queryTopicById(_id.toString()));
     const expectData = {
       uuid: 'test',
       topic: [
@@ -74,7 +75,7 @@ describe('操作topic的方法', () => {
       modifiedCount: 1,
     };
     expect(result).toMatchObject(expectResult);
-    const [user, err2] = await awaitWrap(historyMessageDb.searchUserTopic());
+    const [user] = await awaitWrap(historyMessageDb.searchUserTopic());
     const actualData = user?.toObject({
       getters: true,
       virtuals: true,

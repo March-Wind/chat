@@ -1,16 +1,11 @@
-import IOpenAI from './base';
-import { SocksProxyAgent } from 'socks-proxy-agent';
+import apiChannelScheduler from './apiChannelScheduler';
 import Tokens from './tokens';
-import { openai_key_40, openai_key_35, proxy } from '../../env';
 import type { ChatCompletionMessageParam, ChatCompletionChunk } from 'openai/src/resources/chat/completions';
 import type { Stream } from 'openai/src/streaming';
 import type { ChatCompletion } from 'openai/resources/index';
-import type { AxiosResponse } from 'axios';
-import type { IncomingMessage } from 'http';
+import type { EncapsulatedOpenAI, EncapsulatedCopilot } from './apiChannelScheduler';
 // ChatCompletion, ChatCompletionMessageParam
-
 // import type { Stream_ChatCompletion } from './types';
-const agent = proxy ? new SocksProxyAgent(proxy) : undefined;
 export interface Props {
   model?: Tokens['model']; // 模型
   // model?: string;
@@ -21,11 +16,7 @@ export interface Props {
   presence_penalty?: number; //
 }
 
-// 回答格式
-type AnswerFormatNormal = AxiosResponse<IncomingMessage, any>;
-type AnswerFormatStream = AxiosResponse<IncomingMessage, any>;
-type AnswerFormat = AnswerFormatNormal | AnswerFormatStream;
-class Chat extends IOpenAI {
+class Chat {
   private tokens: Tokens;
   private tokensCount: number;
   public answer: ChatCompletionMessageParam & { receiving?: string; id?: string };
@@ -36,8 +27,10 @@ class Chat extends IOpenAI {
   private temperature: number;
   private frequency_penalty: number;
   private presence_penalty: number;
-  private resp: AnswerFormat | undefined = undefined;
-  private unexpectedReturns = '';
+  private resp: ChatCompletion | Stream<ChatCompletionChunk> | null = null;
+  // private unexpectedReturns = '';
+  // private callerFinish: Function | null = null
+  private caller: EncapsulatedOpenAI | EncapsulatedCopilot;
   constructor(props?: Props) {
     const defaultOptions: Required<Props> = {
       stream: true,
@@ -55,10 +48,10 @@ class Chat extends IOpenAI {
     };
 
     // 设置对应的模型的key
-    const apiKey_4_0 = openai_key_40?.split(',') || [];
-    const apiKey_3_5 = openai_key_35?.split(',') || [];
-    const apiKey = initOptions.model === 'gpt-4' ? apiKey_4_0[0] : apiKey_3_5[0];
-    super({ apiKey });
+    // const apiKey_4_0 = openai_key_40?.split(',') || [];
+    // const apiKey_3_5 = openai_key_35?.split(',') || [];
+    // const apiKey = initOptions.model === 'gpt-4' ? apiKey_4_0[0] : apiKey_3_5[0];
+    // super({ apiKey });
     // 初始化对话上下文以及对话的规格参数
     this.context = initOptions.context;
     this.askContent = this.context;
@@ -107,7 +100,9 @@ class Chat extends IOpenAI {
     // if (/gpt-4/.test(model)) {
     //   model = 'gpt-4-1106-preview';
     // }
-    const answer = await this.openai.chat.completions.create(
+    const caller = await apiChannelScheduler.returnAPICaller();
+    this.caller = caller;
+    const answer = await caller.openai.chat.completions.create(
       {
         model: model,
         messages: this.askContent,
@@ -122,15 +117,20 @@ class Chat extends IOpenAI {
       },
       {
         // httpsAgent: agent,
-        httpAgent: agent,
+        ...caller.axiosRequestConfig,
         // ...(stream ? { responseType: 'stream' } : {}),
         // responseType: 'stream',
         stream: true,
         // proxy: false,
       },
     );
+
     // processCb(answer);
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
+    this.resp = answer;
     return answer;
+
     // for await (const chunk of answer) {
     //   console.log(chunk);
     //   debugger
@@ -151,6 +151,10 @@ class Chat extends IOpenAI {
     const answer = await this.callOpenAi();
     if (this.stream) {
       for await (const chunk of answer as unknown as Stream<ChatCompletionChunk>) {
+        if (!chunk.id) {
+          // 兼容copilot接口
+          continue;
+        }
         this.handleMessage(chunk);
         streamCb?.(chunk);
       }
@@ -174,12 +178,13 @@ class Chat extends IOpenAI {
     // question && this.recordTokensCount(question);
     // return answer;
   }
-  close() {
-    this.resp?.data.destroy();
+  async close() {
+    await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState();
+    (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
     if (this.answer) {
       this.answer.content = this.answer.receiving as string;
     }
-    this.resp = undefined;
+    this.resp = null;
   }
   // receivingAnswer(
   //   resp: AnswerFormat,
@@ -284,6 +289,7 @@ class Chat extends IOpenAI {
       // 已经返回完整信息，正常结束
       // eslint-disable-next-line no-fallthrough
       case null:
+      case undefined: // 兼容copilot接口
         // API 响应仍在进行中或不完整
         this.pushHistoryMsg(msgItem);
         break;

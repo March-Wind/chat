@@ -10,3 +10,5 @@ export type Part2<T, K extends keyof T> = {
 };
 // 将interface的某些键修改为可选
 export type Part<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>> & Part2<T, K>;
+
+export type ValueOf<T, K extends keyof T> = T[K];
