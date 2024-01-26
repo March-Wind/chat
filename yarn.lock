@@ -2304,17 +2304,17 @@
   "resolved" "https://registry.npmmirror.com/@leichtgewicht/ip-codec/-/ip-codec-2.0.4.tgz"
   "version" "2.0.4"
 
-"@marchyang/enhanced_promise@^1.2.2":
-  "integrity" "sha512-tM/Rx3AehzAOmbBmpiH8BNYA0uYT3JsUBq6GiCrbCj5zZ5oClbMcLXXRVUm/BSj2jISwNC2/hjFGktaeOOV9mw=="
-  "resolved" "https://registry.npmjs.org/@marchyang/enhanced_promise/-/enhanced_promise-1.2.2.tgz"
-  "version" "1.2.2"
+"@marchyang/enhanced_promise@^1.2.3":
+  "integrity" "sha512-6o+yMrVQgKRuUQjVpvuIody2//Yt6DyCzEuaV6rotaGHu1Ax1tPtUHTFi2KIfgyJAJ5fiwrWBJDvTPVow+XYXQ=="
+  "resolved" "https://registry.npmjs.org/@marchyang/enhanced_promise/-/enhanced_promise-1.2.3.tgz"
+  "version" "1.2.3"
   dependencies:
-    "@marchyang/lib-core" "^1.0.5"
+    "@marchyang/lib-core" "^1.0.6"
 
-"@marchyang/lib-core@^1.0.5":
-  "integrity" "sha512-x3gfAxjmPwV3Vf6OxMi2ya4HMlM7tkafAxS8PcW0q/Fn+Cuppc12Ky5/JlqSuhtNExWG5mKuSuHS7kSRZOLLfg=="
-  "resolved" "https://registry.npmjs.org/@marchyang/lib-core/-/lib-core-1.0.5.tgz"
-  "version" "1.0.5"
+"@marchyang/lib-core@^1.0.6", "@marchyang/lib-core@^1.0.7":
+  "integrity" "sha512-zJt8mYMYktCQx8P1gxmjK2P7zVYajKUo6S5zJnpQS6rRIZq7I9Pm8zqGs9nOKfh/7btsCjxjkTyd/UJ7g2JH9A=="
+  "resolved" "https://registry.npmjs.org/@marchyang/lib-core/-/lib-core-1.0.7.tgz"
+  "version" "1.0.7"
 
 "@marchyang/pack@1.0.3":
   "integrity" "sha512-rQeJ/mg/3bx3webksT7FDA1DS3T7YJMn/G39Jgc9BnWZAhU8o3TD1vV+TumHfW1yaZdZazOIgY2RkXJFDGIFUQ=="
