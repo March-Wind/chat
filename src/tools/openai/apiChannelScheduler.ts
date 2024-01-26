@@ -8,8 +8,52 @@ import { openai_key, proxy } from '../../env';
 import AutoToken from '../mongodb/setting/auto_token';
 import type { AutoTokenModel } from '../mongodb/setting/auto_token';
 import type { RequestOptions } from 'openai/src/core';
-
+import type { Model, Document } from 'mongoose';
 const httpAgent = proxy ? new SocksProxyAgent(proxy) : undefined;
+
+const exchangeCopilotToken = async (doc: AutoTokenModel) => {
+  const autoTokenDB = new AutoToken();
+
+  const url = doc.requestTokenUrl;
+  return fetch(url, {
+    headers: {
+      Authorization: `token ${doc.key}`,
+      ...{
+        'Editor-Version': 'vscode/1.84.2',
+        'Editor-Plugin-Version': 'copilot-chat/0.10.1',
+      },
+      ...{
+        'editor-version': 'vscode/1.84.2',
+        'editor-plugin-version': 'copilot/1.151.0',
+        host: new URL(url).host,
+        'user-agent': 'GithubCopilot/1.151.0',
+        accept: '*/*',
+      },
+    },
+  })
+    .then((res: any) => {
+      return res.json();
+    })
+    .then(async (result: Four_party_Token_Response) => {
+      console.log('result', result);
+      if (result && 'token' in result) {
+        // to perfect 保存token到数据库时，错误处理
+        await awaitWrap(autoTokenDB.updateOne(doc.key, { token: result.token }));
+        return { ...doc, token: result.token };
+      }
+      return Promise.reject(result);
+    })
+    .catch((err: Four_party_Token_Response_Fail | unknown) => {
+      // Internal Server Error.
+      if (err && isObject(err) && 'message' in err && err.message === 'Invalid token.') {
+        // token失效
+      }
+      return Promise.reject(err);
+    })
+    .finally(() => {
+      autoTokenDB.close();
+    });
+};
 
 interface Params {
   apiKey: string;
@@ -80,9 +124,12 @@ export class EncapsulatedCopilot {
       value: params.key,
     });
   }
-  async updateCopilotTokenState() {
+  async updateCopilotTokenState(deleteTokenField = false) {
     const autoTokenDB = new AutoToken();
-    await autoTokenDB.updateOne(this.key, { keyState: 'idle' });
+    await autoTokenDB.updateOne(this.key, {
+      keyState: 'idle',
+      ...(deleteTokenField ? { token: undefined } : {}),
+    });
     await autoTokenDB.close();
   }
 }
@@ -96,64 +143,36 @@ interface Four_party_Token_Response_Success {
 }
 
 type Four_party_Token_Response = Four_party_Token_Response_Fail | Four_party_Token_Response_Success;
-
+type TokenInfo = Required<Pick<AutoTokenModel, 'key' | 'token'>> & Partial<Omit<AutoTokenModel, 'key' | 'token'>>;
 class TokenDB {
-  async getCopilotToken() {
+  async getCopilotToken(): Promise<TokenInfo> {
     const autoTokenDB = new AutoToken();
     const [doc, docErr] = await awaitWrap(autoTokenDB.getIdleAutoToken());
-    console.log('doc', doc);
     if (!doc || docErr) {
+      await autoTokenDB.close();
       return Promise.reject();
     }
-    // to do 这里可以优化，可以根据token的有效期来判断是否需要重新获取token
-    const url = 'http://175.24.175.14:18081/copilot/token/897D476862D844B98B1D408EF132B80F';
-    return fetch(url, {
-      headers: {
-        Authorization: `token ${doc.key}`,
-        ...{ 'Editor-Version': 'vscode/1.84.2', 'Editor-Plugin-Version': 'copilot-chat/0.10.1' },
-        ...{
-          'editor-version': 'vscode/1.84.2',
-          'editor-plugin-version': 'copilot/1.136.0',
-          host: '175.24.175.14:18081',
-          'user-agent': 'GithubCopilot/1.136.0',
-          accept: '*/*',
-        },
-      },
-    })
-      .then((res: any) => {
-        return res.json();
-      })
-      .then(async (result: Four_party_Token_Response) => {
-        console.log('result', result);
-        if (result && 'token' in result) {
-          // to perfect 保存token到数据库时，错误处理
-          await awaitWrap(autoTokenDB.updateOne(doc.key, { token: result.token }));
-          return { ...doc, token: result.token };
-        }
-        return Promise.reject(result);
-      })
-      .catch((err: Four_party_Token_Response_Fail | unknown) => {
-        // Internal Server Error.
-        if (err && isObject(err) && 'message' in err && err.message === 'Invalid token.') {
-          // token失效
-        }
-        return Promise.reject(err);
-      })
-      .finally(async () => {
-        await autoTokenDB.close();
-      });
+    // 还在有效期内，直接使用
+    if (doc.token && doc.tokenExpiredTime && doc.tokenExpiredTime.getTime() > Date.now()) {
+      return doc as TokenInfo;
+    }
+    return exchangeCopilotToken(doc);
   }
 
-  async getOpenaiToken() {
+  async getOpenaiToken(): Promise<
+    Required<Pick<AutoTokenModel, 'key' | 'token'>> & Partial<Omit<AutoTokenModel, 'key' | 'token'>>
+  > {
     return { key: 'openai', token: openai_key };
   }
 }
 class ApiChannelScheduler extends TokenDB {
   static queue = ['COPILOT_TOKEN', 'OPENAI_TOKEN'] as const;
-  // eslint-disable-next-line no-use-before-define
   private channelMap: Map<
     (typeof ApiChannelScheduler.queue)[number],
-    { tokenGetterFnName: keyof TokenDB; ApiCaller: typeof EncapsulatedOpenAI | typeof EncapsulatedCopilot }
+    {
+      tokenGetterFnName: keyof TokenDB;
+      ApiCaller: typeof EncapsulatedOpenAI | typeof EncapsulatedCopilot;
+    }
   > = new Map([
     ['COPILOT_TOKEN', { tokenGetterFnName: 'getCopilotToken', ApiCaller: EncapsulatedCopilot }],
     ['OPENAI_TOKEN', { tokenGetterFnName: 'getOpenaiToken', ApiCaller: EncapsulatedOpenAI }],
@@ -165,11 +184,12 @@ class ApiChannelScheduler extends TokenDB {
   private async getIdleToken(): Promise<
     | {
         // channel: typeof ApiChannelScheduler.queue[number];
-        tokenInfo: Required<Pick<AutoTokenModel, 'key' | 'token'>> & Partial<Omit<AutoTokenModel, 'key' | 'token'>>;
+        tokenInfo: TokenInfo;
         ApiCaller: typeof EncapsulatedOpenAI | typeof EncapsulatedCopilot;
       }
     | undefined
   > {
+    const _this = this;
     for (const channel of ApiChannelScheduler.queue) {
       const createInfo = this.channelMap.get(channel);
       if (!createInfo) {
@@ -180,9 +200,9 @@ class ApiChannelScheduler extends TokenDB {
       if (!fn) {
         continue;
       }
-      const [tokenInfo] = await awaitWrap(fn.call(this));
+
+      const [tokenInfo] = await awaitWrap(fn.call(_this));
       if (tokenInfo) {
-        console.log('tokenInfo', tokenInfo.key);
         return {
           // channel,
           tokenInfo,
@@ -200,7 +220,11 @@ class ApiChannelScheduler extends TokenDB {
       throw new Error('没有可用的token');
     }
     const { tokenInfo, ApiCaller } = hitInfo;
-    return new ApiCaller({ apiKey: tokenInfo.token, key: tokenInfo.key, headers: tokenInfo.headers });
+    return new ApiCaller({
+      apiKey: tokenInfo.token,
+      key: tokenInfo.key,
+      headers: tokenInfo.headers,
+    });
   }
 }
 

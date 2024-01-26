@@ -5,9 +5,11 @@ import type { Model, Types, FilterQuery } from 'mongoose';
 // 这里忽略的token的状态
 export interface AutoTokenModel {
   key: string;
-  keyState: 'occupied' | 'idle' | 'invalid';
+  keyState: 'occupied' | 'idle' | 'expired';
   times: number;
+  requestTokenUrl: string;
   token?: string;
+  tokenExpiredTime?: Date;
   startTime?: string;
   estimatedEndTime?: string;
   headers?: {
@@ -21,7 +23,7 @@ export interface AutoTokenModel {
     'user-agent': string;
   };
 }
-export type InsetItemType = Required<Pick<AutoTokenModel, 'key'>> &
+export type InsetItemType = Required<Pick<AutoTokenModel, 'key' | 'requestTokenUrl'>> &
   Partial<Omit<AutoTokenModel, 'key' | 'headers'>> & { headers?: Partial<AutoTokenModel['headers']> };
 export const defaultHeaders = {
   'vscode-machineid': '4b01dcbd455bdb9b67e196b03672a81e9b7fd071a0df0a6bc6c27495e7c3b9e9',
@@ -41,7 +43,9 @@ const autoTokenSchema = new Schema<AutoTokenModel>(
       default: 'idle',
       required: true,
     },
+    requestTokenUrl: { type: String, required: true },
     token: { type: String },
+    tokenExpiredTime: { type: Date },
     times: { type: Number, required: true, default: 0 },
     startTime: { type: String, required: true },
     estimatedEndTime: { type: String, required: true },
@@ -112,6 +116,12 @@ class AutoToken extends Elementary {
   @preCheckConnection
   async updateOne(key: string, data: Partial<AutoTokenModel>) {
     const { model } = this;
+    // 如果更新了token，那么更新token的时间
+    if (data.token) {
+      const now = new Date(); // 获取当前时间
+      now.setMinutes(now.getMinutes() + 10);
+      data.tokenExpiredTime = now;
+    }
     return await model.updateOne({ key }, { $set: data });
   }
 

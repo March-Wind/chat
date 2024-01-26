@@ -93,9 +93,6 @@ class Chat {
   async callOpenAi() {
     const stream = this.stream;
     const model = this.model;
-    this.askContent.forEach((item) => {
-      console.log(item.content + '\n\n');
-    });
     // to optimize
     // if (/gpt-4/.test(model)) {
     //   model = 'gpt-4-1106-preview';
@@ -141,7 +138,7 @@ class Chat {
     streamCb?: (data: ChatCompletionChunk | 'end' | 'close') => void;
     cb?: (data: ChatCompletion) => void;
     errCb?: (err: any) => void;
-  }) {
+  }): Promise<unknown> {
     const { question, cb, streamCb } = params;
     question &&
       this.askContent.push({
@@ -154,6 +151,11 @@ class Chat {
         if (!chunk.id) {
           // 兼容copilot接口
           continue;
+        }
+        if (/unauthorized: token expired/.test(chunk as unknown as string)) {
+          // 兼容copilot接口,如果token失效,就删除token,重新请求
+          (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState(true);
+          return this.ask(params);
         }
         this.handleMessage(chunk);
         streamCb?.(chunk);

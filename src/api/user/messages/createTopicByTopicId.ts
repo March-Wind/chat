@@ -6,7 +6,6 @@ import awaitWrap from '../../../tools/await-wrap';
 import verifyAuth from '../../../tools/koa/middleware/verify-auth';
 import { failStatus, successStatus } from '../../../constant';
 import { generateTopic } from '../../../prompt';
-
 const checkAuth = verifyAuth();
 
 interface Body {
@@ -91,6 +90,9 @@ const createTopicByTopicId = (router: Router) => {
         })
         .catch((err: any) => {
           console.log(err);
+        })
+        .finally(() => {
+          chat.close();
         });
     });
     await historyDb.close();
