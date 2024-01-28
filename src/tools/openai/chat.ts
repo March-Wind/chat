@@ -99,6 +99,8 @@ class Chat {
     // }
     const caller = await apiChannelScheduler.returnAPICaller();
     this.caller = caller;
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore
     const answer = await caller.openai.chat.completions.create(
       {
         model: model,
