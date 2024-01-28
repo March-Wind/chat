@@ -107,6 +107,8 @@ class Chat {
         temperature: this.temperature,
         frequency_penalty: this.frequency_penalty || 1,
         presence_penalty: this.presence_penalty || 1,
+        top_p: 1,
+        n: 1,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         // response_format: { "type": "json_object" },
@@ -154,7 +156,7 @@ class Chat {
         }
         if (/unauthorized: token expired/.test(chunk as unknown as string)) {
           // 兼容copilot接口,如果token失效,就删除token,重新请求
-          (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState(true);
+          (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.(true);
           return this.ask(params);
         }
         this.handleMessage(chunk);
@@ -181,7 +183,7 @@ class Chat {
     // return answer;
   }
   async close() {
-    await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState();
+    await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.();
     (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
     if (this.answer) {
       this.answer.content = this.answer.receiving as string;

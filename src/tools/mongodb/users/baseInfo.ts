@@ -1,11 +1,20 @@
 import { Schema } from 'mongoose';
 import Elementary, { ElementaryOptions, preCheckConnection } from '../elementary';
 import { mongodb_uri } from '../../../env';
-import type { SchemaParamType } from '../types';
 import type { UpdatedInterface } from '../../../tool';
 import type { Model } from 'mongoose';
-export type BaseInfoSchema = SchemaParamType<BaseInfo['schema']>;
-const _schema = new Schema({
+export interface BaseInfoSchema {
+  uuid: string;
+  email: string;
+  password: string;
+  name?:
+    | {
+        firstName: string;
+        lastName: string;
+      }
+    | undefined;
+}
+const _schema = new Schema<BaseInfoSchema>({
   // schame模式定义的类型校验在set之前校验
   uuid: {
     type: String,

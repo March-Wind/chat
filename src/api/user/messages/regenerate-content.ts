@@ -112,24 +112,23 @@ const regenerateContent = (router: Router) => {
     let stopFlag = false;
     const stopFn = () => {
       chat.close();
+      ctx.userTemporaryStore
+        .set({ ...userTS, chatting: 0 }, 0)
+        // .then(() => {
+        //   answerStream?.write(`${JSON.stringify([{ error: '聊天机器人出错了，请稍后再试~' }])}\n\n`);
+        // })
+        .catch(() => {
+          answerStream?.write(
+            `${JSON.stringify([{ error: '聊天机器人出错了，并且转化对话状态失败，请联系管理员~' }])}\n\n`,
+          );
+        })
+        .finally(() => {
+          answerStream?.end();
+        });
       if (stopFlag) {
         return;
       }
       if (!chat.answer) {
-        // openai api接口报错的分支，就会没有answer
-        ctx.userTemporaryStore
-          .set({ ...userTS, chatting: 0 }, 0)
-          // .then(() => {
-          //   answerStream?.write(`${JSON.stringify([{ error: '聊天机器人出错了，请稍后再试~' }])}\n\n`);
-          // })
-          .catch(() => {
-            answerStream?.write(
-              `${JSON.stringify([{ error: '聊天机器人出错了，并且转化对话状态失败，请联系管理员~' }])}\n\n`,
-            );
-          })
-          .finally(() => {
-            answerStream?.end();
-          });
         return;
       }
       stopFlag = true;
