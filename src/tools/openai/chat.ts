@@ -105,8 +105,8 @@ class Chat {
         messages: this.askContent,
         stream,
         temperature: this.temperature,
-        frequency_penalty: this.frequency_penalty || 1,
-        presence_penalty: this.presence_penalty || 1,
+        frequency_penalty: this.frequency_penalty || 0.5,
+        presence_penalty: this.presence_penalty || 0.5,
         top_p: 1,
         n: 1,
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
