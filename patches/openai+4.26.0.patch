@@ -1,5 +1,5 @@
 diff --git a/node_modules/openai/src/streaming.ts b/node_modules/openai/src/streaming.ts
-index 6b86d7b..35869b7 100644
+index 6b86d7b..5bf5a4f 100644
 --- a/node_modules/openai/src/streaming.ts
 +++ b/node_modules/openai/src/streaming.ts
 @@ -1,11 +1,11 @@
@@ -48,7 +48,7 @@ index 6b86d7b..35869b7 100644
 +          // console.log('99999', chunk.toString());
 +          // debugger;
 +        }
-+        if (/"content":"�$/.test(text)) {
++        if (/"content":"�{1,2}$/.test(text)) {
 +          // console.log('999998');
 +          cacheChunkIndex = i;
 +          cacheChunk = _chunk;

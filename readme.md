@@ -24,7 +24,4 @@
      const wasmInstance = new WebAssembly.Instance(wasmModule, imports);
    ```
 
-   node /www/wwwroot/chat/build_node/main.cjs
-
-   production
-   development
+2. 使用的 patch-package 来修改 npm 包的源码
