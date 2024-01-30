@@ -68,7 +68,7 @@ index 6b86d7b..5bf5a4f 100644
  
    const reader = stream.getReader();
 diff --git a/node_modules/openai/streaming.js b/node_modules/openai/streaming.js
-index ff0380e..4342c12 100644
+index ff0380e..8ada6ed 100644
 --- a/node_modules/openai/streaming.js
 +++ b/node_modules/openai/streaming.js
 @@ -1,230 +1,234 @@
@@ -184,7 +184,7 @@ index ff0380e..4342c12 100644
 -                if (!done)
 -                    controller.abort();
 -            }
-+        if (/"content":"�$/.test(text)) {
++        if (/"content":"�{1,2}$/.test(text)) {
 +          // console.log('999998');
 +          cacheChunkIndex = i;
 +          cacheChunk = _chunk;
@@ -728,7 +728,7 @@ index ff0380e..4342c12 100644
 -exports.readableStreamAsyncIterable = readableStreamAsyncIterable;
  //# sourceMappingURL=streaming.js.map
 diff --git a/node_modules/openai/streaming.mjs b/node_modules/openai/streaming.mjs
-index dbbc030..d584404 100644
+index dbbc030..34d4778 100644
 --- a/node_modules/openai/streaming.mjs
 +++ b/node_modules/openai/streaming.mjs
 @@ -1,226 +1,229 @@
@@ -836,7 +836,7 @@ index dbbc030..d584404 100644
 -                if (!done)
 -                    controller.abort();
 -            }
-+        if (/"content":"�$/.test(text)) {
++        if (/"content":"�{1,2}$/.test(text)) {
 +          // console.log('999998');
 +          cacheChunkIndex = i;
 +          cacheChunk = _chunk;
