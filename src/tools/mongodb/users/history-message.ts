@@ -550,7 +550,6 @@ class HistoryMessage extends Elementary {
   ): Promise<void> {
     const { model } = this;
     const { uuid } = this.options;
-    console.log(newMessage, messageId, reserveIndex);
     if (messageId !== undefined) {
       const result = await model.updateOne(
         {

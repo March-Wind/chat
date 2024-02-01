@@ -35,7 +35,6 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
       return res.json();
     })
     .then(async (result: Four_party_Token_Response) => {
-      console.log('result', result);
       if (result && 'token' in result) {
         // to perfect 保存token到数据库时，错误处理
         await awaitWrap(autoTokenDB.updateOne(doc.key, { token: result.token }));
@@ -44,6 +43,7 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
       return Promise.reject(result);
     })
     .catch((err: Four_party_Token_Response_Fail | unknown) => {
+      console.error('获取copilot token失败: ', err);
       // Internal Server Error.
       if (err && isObject(err) && 'message' in err && err.message === 'Invalid token.') {
         // token失效
@@ -149,7 +149,7 @@ class TokenDB {
     const autoTokenDB = new AutoToken();
     const [doc, docErr] = await awaitWrap(autoTokenDB.getIdleAutoToken());
     if (!doc || docErr) {
-      await autoTokenDB.close();
+      await autoTokenDB.close().catch(console.error);
       return Promise.reject();
     }
     // 还在有效期内，直接使用

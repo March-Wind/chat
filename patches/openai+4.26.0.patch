@@ -1,5 +1,5 @@
 diff --git a/node_modules/openai/src/streaming.ts b/node_modules/openai/src/streaming.ts
-index 6b86d7b..5bf5a4f 100644
+index 6b86d7b..c179aa5 100644
 --- a/node_modules/openai/src/streaming.ts
 +++ b/node_modules/openai/src/streaming.ts
 @@ -1,11 +1,11 @@
@@ -48,7 +48,7 @@ index 6b86d7b..5bf5a4f 100644
 +          // console.log('99999', chunk.toString());
 +          // debugger;
 +        }
-+        if (/"content":"�{1,2}$/.test(text)) {
++        if (/"content":".{0,1}�{1,2}$/.test(text)) {
 +          // console.log('999998');
 +          cacheChunkIndex = i;
 +          cacheChunk = _chunk;
@@ -68,7 +68,7 @@ index 6b86d7b..5bf5a4f 100644
  
    const reader = stream.getReader();
 diff --git a/node_modules/openai/streaming.js b/node_modules/openai/streaming.js
-index ff0380e..8ada6ed 100644
+index ff0380e..082250a 100644
 --- a/node_modules/openai/streaming.js
 +++ b/node_modules/openai/streaming.js
 @@ -1,230 +1,234 @@
@@ -184,7 +184,7 @@ index ff0380e..8ada6ed 100644
 -                if (!done)
 -                    controller.abort();
 -            }
-+        if (/"content":"�{1,2}$/.test(text)) {
++        if (/"content":".{0,1}�{1,2}$/.test(text)) {
 +          // console.log('999998');
 +          cacheChunkIndex = i;
 +          cacheChunk = _chunk;
@@ -728,10 +728,10 @@ index ff0380e..8ada6ed 100644
 -exports.readableStreamAsyncIterable = readableStreamAsyncIterable;
  //# sourceMappingURL=streaming.js.map
 diff --git a/node_modules/openai/streaming.mjs b/node_modules/openai/streaming.mjs
-index dbbc030..34d4778 100644
+index dbbc030..0542955 100644
 --- a/node_modules/openai/streaming.mjs
 +++ b/node_modules/openai/streaming.mjs
-@@ -1,226 +1,229 @@
+@@ -1,226 +1,227 @@
 -import { ReadableStream } from "./_shims/index.mjs";
 -import { OpenAIError } from "./error.mjs";
 +import { ReadableStream } from './_shims/index.mjs';
@@ -790,7 +790,6 @@ index dbbc030..34d4778 100644
 +          const Uint8Array1 = Buffer.from(cacheChunk.buffer);
 +          const Uint8Array2 = Buffer.from(_chunk.buffer);
 +          chunk = Buffer.concat([Uint8Array1, Uint8Array2]);
-+          // console.log('99999', chunk.toString());
 +          // debugger;
          }
 -        async function* iterator() {
@@ -836,8 +835,7 @@ index dbbc030..34d4778 100644
 -                if (!done)
 -                    controller.abort();
 -            }
-+        if (/"content":"�{1,2}$/.test(text)) {
-+          // console.log('999998');
++        if (/"content":".{0,1}�{1,2}$/.test(text)) {
 +          cacheChunkIndex = i;
 +          cacheChunk = _chunk;
 +          chunk = null;
@@ -1168,7 +1166,7 @@ index dbbc030..34d4778 100644
  }
  /**
   * A re-implementation of httpx's `LineDecoder` in Python that handles incrementally
-@@ -229,82 +232,86 @@ class SSEDecoder {
+@@ -229,82 +230,86 @@ class SSEDecoder {
   * https://github.com/encode/httpx/blob/920333ea98118e9cf617f246905d7b202510941c/httpx/_decoders.py#L258
   */
  class LineDecoder {
@@ -1322,7 +1320,7 @@ index dbbc030..34d4778 100644
  }
  /**
   * Most browsers don't yet have async iterable support for ReadableStream,
-@@ -312,32 +319,29 @@ function partition(str, delimiter) {
+@@ -312,32 +317,29 @@ function partition(str, delimiter) {
   *
   * This polyfill was pulled from https://github.com/MattiasBuelens/web-streams-polyfill/pull/122#issuecomment-1627354490
   */
