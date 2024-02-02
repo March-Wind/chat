@@ -276,7 +276,6 @@ const playChat = async (router: Router) => {
     const chat = new Chat({ ...userModalConfig, ...config });
     let stopFlag = false;
     const stopFn = () => {
-      chat.close();
       if (stopFlag) {
         return;
       }
@@ -293,6 +292,7 @@ const playChat = async (router: Router) => {
             );
           })
           .finally(() => {
+            chat.close();
             answerStream?.end();
           });
         return;

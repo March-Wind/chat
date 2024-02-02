@@ -186,6 +186,7 @@ class Chat {
   }
   async close() {
     await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.();
+    // 多次调用好像会报错
     (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
     if (this.answer) {
       this.answer.content = this.answer.receiving as string;
