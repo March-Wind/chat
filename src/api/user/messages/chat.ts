@@ -279,6 +279,7 @@ const playChat = async (router: Router) => {
       if (stopFlag) {
         return;
       }
+      chat.close();
       if (!chat.answer) {
         // openai api接口报错的分支，就会没有answer
         ctx.userTemporaryStore
@@ -292,7 +293,6 @@ const playChat = async (router: Router) => {
             );
           })
           .finally(() => {
-            chat.close();
             answerStream?.end();
           });
         return;

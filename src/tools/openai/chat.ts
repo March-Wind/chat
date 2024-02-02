@@ -92,11 +92,13 @@ class Chat {
   }
   async callOpenAi() {
     const stream = this.stream;
-    const model = this.model;
+    let model = this.model;
     // to optimize
-    // if (/gpt-4/.test(model)) {
-    //   model = 'gpt-4-1106-preview';
-    // }
+    if (/gpt-4/.test(model)) {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      model = 'gpt-4-turbo-preview';
+    }
     const caller = await apiChannelScheduler.returnAPICaller();
     this.caller = caller;
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -185,13 +187,17 @@ class Chat {
     // return answer;
   }
   async close() {
-    await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.();
-    // 多次调用好像会报错
-    (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
-    if (this.answer) {
-      this.answer.content = this.answer.receiving as string;
+    try {
+      await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.();
+      // 多次调用好像会报错
+      (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
+      if (this.answer) {
+        this.answer.content = this.answer.receiving as string;
+      }
+      this.resp = null;
+    } catch (error) {
+      console.error('close error:', error);
     }
-    this.resp = null;
   }
   // receivingAnswer(
   //   resp: AnswerFormat,
