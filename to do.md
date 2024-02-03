@@ -84,6 +84,8 @@
 2. 域名，免费证书，DNS 解析
 3. 防止 noSQL 注入
 4. 区分用户和话题维度的上下文
+5. 修复报错：The operation was aborted.
+   > 如果已经终止了链接，就会报这个错，所以终止之前先判断状态：!(this.resp as Stream<ChatCompletionChunk>)?.controller?.signal.aborted
 
 - 用户登录，产生话题 id
 - 上下文生产
