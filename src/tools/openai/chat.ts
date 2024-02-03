@@ -190,13 +190,19 @@ class Chat {
     try {
       await (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.();
       // 多次调用好像会报错
-      (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
+      if (
+        (this.resp as Stream<ChatCompletionChunk>)?.controller &&
+        !(this.resp as Stream<ChatCompletionChunk>)?.controller?.signal.aborted
+      ) {
+        (this.resp as Stream<ChatCompletionChunk>)?.controller?.abort();
+      }
       if (this.answer) {
         this.answer.content = this.answer.receiving as string;
       }
       this.resp = null;
     } catch (error) {
       console.error('close error:', error);
+      console.log('close error:', error);
     }
   }
   // receivingAnswer(
