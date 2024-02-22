@@ -13,6 +13,7 @@ export interface BaseInfoSchema {
         lastName: string;
       }
     | undefined;
+  tokens?: number;
 }
 const _schema = new Schema<BaseInfoSchema>({
   // schame模式定义的类型校验在set之前校验
@@ -91,6 +92,10 @@ const _schema = new Schema<BaseInfoSchema>({
   //   enum: ["gpt-3.5-turbo", "gpt-4"],
   //   default: ["gpt-3.5-turbo"],
   // },
+  tokens: {
+    type: Number,
+    default: 0,
+  },
 });
 // 上升到程序里是唯一的，保证不重复创建模型
 // export const _model = model(collectionName, _schema);
@@ -166,6 +171,22 @@ class BaseInfo extends Elementary {
     } else {
       return validate.validateSync();
     }
+  }
+  @preCheckConnection
+  buyTokens(uuid: string, tokens: number) {
+    const { model } = this;
+    return model.updateOne({ uuid }, { $inc: { tokens } });
+  }
+  @preCheckConnection
+  async queryTokens(uuid: string) {
+    const { model } = this;
+    const data = await model.findOne({ uuid }, { tokens: 1 });
+    return data?.tokens;
+  }
+  @preCheckConnection
+  async queryUserByUuid(uuid: string) {
+    const { model } = this;
+    return await model.findOne({ uuid });
   }
 }
 

@@ -1,9 +1,9 @@
-import { createConnection, Document } from 'mongoose';
+import { Document } from 'mongoose';
 import { sanitizeSlashes } from '../../tools/utils';
-import { authSource } from '../../env';
+import manageConnections from './manage_connections';
 import type { Connection, Model, Schema, Types } from 'mongoose';
 export interface ElementaryOptions {
-  uri: string;
+  uri?: string;
   dbName: string;
   collectionName: string;
 }
@@ -15,7 +15,7 @@ abstract class Elementary {
   protected dbName: string; // 数据库名
   protected collectionName: string; // 集合名字
   protected uri: string;
-  protected connection: Connection | null;
+  protected connection: Connection;
   protected abstract model: Model<any>;
   protected abstract schema: Schema;
   constructor(options: ElementaryOptions) {
@@ -40,16 +40,24 @@ abstract class Elementary {
         configurable: false,
       },
     });
+    if (manageConnections.connectionsMap.has(dbName)) {
+      this.connection = manageConnections.connectionsMap.get(dbName)!;
+    } else {
+      throw new Error(`数据库${dbName}不存在`);
+    }
   }
   connect() {
-    const { uri } = this;
-    // authSource这里代表验证的数据库是什么，一般是admin,在admin里创建各种权限的用户
-    this.connection = createConnection(uri, { ...(authSource ? { authSource } : {}) });
+    // const { uri } = this;
+    // // authSource这里代表验证的数据库是什么，一般是admin,在admin里创建各种权限的用户
+    // this.connection = createConnection(uri, { ...(authSource ? { authSource } : {}) });
     // 创建集合模型
     this.model = this.connection.model(this.collectionName, this.schema);
   }
   checkConnection() {
-    if (!this.connection || this.connection.readyState === 0) {
+    // if (!this.connection || this.connection.readyState === 0) {
+    //   this.connect();
+    // }
+    if (!this.model) {
       this.connect();
     }
   }
@@ -58,22 +66,22 @@ abstract class Elementary {
     this.connection?.on('error', cb);
   }
   async close() {
-    if (this.connection?.readyState === 1) {
-      // 已经连接
-      await this.connection?.close();
-      this.connection = null;
-    } else if (this.connection?.readyState === 2) {
-      // 正在连接
-      return new Promise((resolve, reject) => {
-        this.connection?.on('connected', () => {
-          this.connection?.close().then(resolve).catch(reject);
-          this.connection = null;
-        });
-      });
-    } else {
-      this.connection = null;
-      return Promise.resolve();
-    }
+    // if (this.connection?.readyState === 1) {
+    //   // 已经连接
+    //   await this.connection?.close();
+    //   this.connection = null;
+    // } else if (this.connection?.readyState === 2) {
+    //   // 正在连接
+    //   return new Promise((resolve, reject) => {
+    //     this.connection?.on('connected', () => {
+    //       this.connection?.close().then(resolve).catch(reject);
+    //       this.connection = null;
+    //     });
+    //   });
+    // } else {
+    //   this.connection = null;
+    //   return Promise.resolve();
+    // }
   }
   async drop() {
     this.checkConnection();
