@@ -37,7 +37,11 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
     .then(async (result: Four_party_Token_Response) => {
       if (result && 'token' in result) {
         // to perfect 保存token到数据库时，错误处理
-        await awaitWrap(autoTokenDB.updateOne(doc.key, { token: result.token }));
+        const currentTime = new Date();
+        // 增加10分钟
+        currentTime.setMinutes(currentTime.getMinutes() + 10);
+
+        await awaitWrap(autoTokenDB.updateOne(doc.key, { token: result.token, tokenExpiredTime: currentTime }));
         return { ...doc, token: result.token };
       }
       return Promise.reject(result);
@@ -124,11 +128,15 @@ export class EncapsulatedCopilot {
       value: params.key,
     });
   }
-  async updateCopilotTokenState(deleteTokenField = false) {
+  async updateCopilotTokenState(params?: { deleteTokenField?: boolean; rateLimiting?: boolean }) {
+    const { deleteTokenField = false, rateLimiting = false } = params || {};
     const autoTokenDB = new AutoToken();
+    const currentTime = new Date();
+    currentTime.setMinutes(currentTime.getMinutes() + 3);
     await autoTokenDB.updateOne(this.key, {
       keyState: 'idle',
       ...(deleteTokenField ? { token: undefined } : {}),
+      ...(rateLimiting ? { rateLimiting: currentTime } : {}),
     });
     await autoTokenDB.close();
   }
@@ -153,7 +161,13 @@ class TokenDB {
       return Promise.reject();
     }
     // 还在有效期内，直接使用
-    if (doc.token && doc.tokenExpiredTime && doc.tokenExpiredTime.getTime() > Date.now()) {
+    if (
+      doc.token &&
+      doc.tokenExpiredTime &&
+      doc.tokenExpiredTime.getTime() > Date.now() &&
+      doc.rateLimiting &&
+      Date.now() > doc.rateLimiting.getTime()
+    ) {
       return doc as TokenInfo;
     }
     return exchangeCopilotToken(doc);

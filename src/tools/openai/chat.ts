@@ -1,5 +1,6 @@
 import apiChannelScheduler from './apiChannelScheduler';
 import Tokens from './tokens';
+import { retry } from '@marchyang/enhanced_promise';
 import type { ChatCompletionMessageParam, ChatCompletionChunk } from 'openai/src/resources/chat/completions';
 import type { Stream } from 'openai/src/streaming';
 import type { ChatCompletion } from 'openai/resources/index';
@@ -103,30 +104,62 @@ class Chat {
     this.caller = caller;
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
     // @ts-ignore
-    const answer = await caller.openai.chat.completions.create(
-      {
-        model: model,
-        messages: this.askContent,
-        stream,
-        temperature: this.temperature,
-        frequency_penalty: this.frequency_penalty || 0.5,
-        presence_penalty: this.presence_penalty || 0.5,
-        top_p: 1,
-        n: 1,
-        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-        // @ts-ignore
-        // response_format: { "type": "json_object" },
-        // stream: true
+    const answerFn = () =>
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      caller.openai.chat.completions.create(
+        {
+          model: model,
+          messages: this.askContent,
+          stream,
+          temperature: this.temperature,
+          frequency_penalty: this.frequency_penalty || 0.5,
+          presence_penalty: this.presence_penalty || 0.5,
+          top_p: 1,
+          n: 1,
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          // response_format: { "type": "json_object" },
+          // stream: true
+        },
+        {
+          // httpsAgent: agent,
+          ...caller.axiosRequestConfig,
+          // ...(stream ? { responseType: 'stream' } : {}),
+          // responseType: 'stream',
+          stream: true,
+          // proxy: false,
+        },
+      );
+
+    const answer = retry(answerFn, {
+      assessment: async (type, data) => {
+        if (type === 'catch') {
+          switch (data?.status) {
+            case 401: {
+              // 401 unauthorized: token expired
+              await (this.caller as EncapsulatedCopilot)
+                ?.updateCopilotTokenState?.({ deleteTokenField: true })
+                .catch((err: any) => {
+                  console.log('updateCopilotTokenState: db出错：', err);
+                });
+              return true;
+            }
+            case 429: {
+              // 速率限制
+              await (this.caller as EncapsulatedCopilot)
+                ?.updateCopilotTokenState?.({ deleteTokenField: true, rateLimiting: true })
+                .catch((err: any) => {
+                  console.log('updateCopilotTokenState: db出错：', err);
+                });
+              return true;
+            }
+          }
+          return false;
+        }
+        return false;
       },
-      {
-        // httpsAgent: agent,
-        ...caller.axiosRequestConfig,
-        // ...(stream ? { responseType: 'stream' } : {}),
-        // responseType: 'stream',
-        stream: true,
-        // proxy: false,
-      },
-    );
+    });
 
     // processCb(answer);
     // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -151,7 +184,10 @@ class Chat {
         role: 'user',
         content: question,
       });
-    const answer = await this.callOpenAi();
+    const answer = await this.callOpenAi().catch((err: any) => {
+      console.log(err);
+      debugger;
+    });
     if (this.stream) {
       for await (const chunk of answer as unknown as Stream<ChatCompletionChunk>) {
         if (!chunk.id) {
@@ -160,7 +196,7 @@ class Chat {
         }
         if (/unauthorized: token expired/.test(chunk as unknown as string)) {
           // 兼容copilot接口,如果token失效,就删除token,重新请求
-          (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.(true);
+          (this.caller as EncapsulatedCopilot)?.updateCopilotTokenState?.({ deleteTokenField: true });
           return this.ask(params);
         }
         this.handleMessage(chunk);

@@ -12,6 +12,7 @@ export interface AutoTokenModel {
   tokenExpiredTime?: Date;
   startTime?: string;
   estimatedEndTime?: string;
+  rateLimiting?: Date;
   headers?: {
     // 'x-request-id': string;
     // 'vscode-sessionid': string;
@@ -49,6 +50,7 @@ const autoTokenSchema = new Schema<AutoTokenModel>(
     times: { type: Number, required: true, default: 0 },
     startTime: { type: String, required: true },
     estimatedEndTime: { type: String, required: true },
+    rateLimiting: { type: Date },
     headers: {
       type: Object,
       required: true,
