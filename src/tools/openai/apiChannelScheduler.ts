@@ -2,8 +2,8 @@ import OpenAI from 'openai';
 import fetch from 'node-fetch';
 import { randomString } from '../utils';
 import { SocksProxyAgent } from 'socks-proxy-agent';
+import { awaitWrap, retry } from '@marchyang/enhanced_promise';
 import { isObject } from '@marchyang/lib-core';
-import { awaitWrap } from '@marchyang/enhanced_promise';
 import { openai_key, proxy } from '../../env';
 import AutoToken from '../mongodb/setting/auto_token';
 import type { AutoTokenModel } from '../mongodb/setting/auto_token';
@@ -135,7 +135,7 @@ export class EncapsulatedCopilot {
     currentTime.setMinutes(currentTime.getMinutes() + 3);
     await autoTokenDB.updateOne(this.key, {
       keyState: 'idle',
-      ...(deleteTokenField ? { token: undefined } : {}),
+      ...(deleteTokenField ? { token: '' } : {}),
       ...(rateLimiting ? { rateLimiting: currentTime } : {}),
     });
     await autoTokenDB.close();
@@ -161,16 +161,18 @@ class TokenDB {
       return Promise.reject();
     }
     // 还在有效期内，直接使用
-    if (
-      doc.token &&
-      doc.tokenExpiredTime &&
-      doc.tokenExpiredTime.getTime() > Date.now() &&
-      doc.rateLimiting &&
-      Date.now() > doc.rateLimiting.getTime()
-    ) {
+    if (doc.token && doc.tokenExpiredTime && doc.tokenExpiredTime.getTime() > Date.now()) {
       return doc as TokenInfo;
     }
-    return exchangeCopilotToken(doc);
+    // 这里重试换token
+    // return retry(() => exchangeCopilotToken(doc), { times: 2, delay: 500 }).catch(async (err) => {
+    return exchangeCopilotToken(doc).catch(async (err) => {
+      const currentTime = new Date();
+      currentTime.setMinutes(currentTime.getMinutes() + 3);
+      // 设置交换token的冷静期
+      await autoTokenDB.updateOne(doc.key, { keyState: 'idle', exChangeTokenRestTime: currentTime });
+      return Promise.reject(err);
+    });
   }
 
   async getOpenaiToken(): Promise<
@@ -214,8 +216,8 @@ class ApiChannelScheduler extends TokenDB {
       if (!fn) {
         continue;
       }
-
-      const [tokenInfo] = await awaitWrap(fn.call(_this));
+      const getTokenInfo = retry(() => fn.call(_this), { times: 2 }); // 换取token出错，数据库出错，等等会再重试一次；
+      const [tokenInfo] = await awaitWrap(getTokenInfo);
       if (tokenInfo) {
         return {
           // channel,

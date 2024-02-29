@@ -13,6 +13,7 @@ export interface AutoTokenModel {
   startTime?: string;
   estimatedEndTime?: string;
   rateLimiting?: Date;
+  exChangeTokenRestTime?: Date;
   headers?: {
     // 'x-request-id': string;
     // 'vscode-sessionid': string;
@@ -51,6 +52,7 @@ const autoTokenSchema = new Schema<AutoTokenModel>(
     startTime: { type: String, required: true },
     estimatedEndTime: { type: String, required: true },
     rateLimiting: { type: Date },
+    exChangeTokenRestTime: { type: Date },
     headers: {
       type: Object,
       required: true,
@@ -146,7 +148,24 @@ class AutoToken extends Elementary {
     return await model.findOneAndUpdate(query, { $set: data });
   }
   async getIdleAutoToken() {
-    const data = await this.findOneAndUpdate({ keyState: 'idle' }, { keyState: 'occupied' });
+    const data = await this.findOneAndUpdate(
+      // 当前时间超出速率限制时间，和超出交换token冷静期
+      {
+        $and: [
+          { keyState: 'idle' },
+          { $or: [{ exChangeTokenRestTime: { $exists: false } }, { exChangeTokenRestTime: { $lt: new Date() } }] },
+          { $or: [{ rateLimiting: { $exists: false } }, { rateLimiting: { $lt: new Date() } }] },
+        ],
+        //     keyState: 'idle',
+        //   $or: [
+        //     { exChangeTokenRestTime: { $exists: false } }, // 没有exChangeTokenRestTime字段
+        //     { exChangeTokenRestTime: { $lt: new Date() } } // exChangeTokenRestTime大于当前时间
+        // ],
+        //   exChangeTokenRestTime: { $lt: new Date() }, rateLimiting: { $lt: new Date() }
+      },
+
+      { keyState: 'occupied' },
+    );
     if (!data) {
       return '';
     }
