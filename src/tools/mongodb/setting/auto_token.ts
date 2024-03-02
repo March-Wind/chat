@@ -29,12 +29,14 @@ export type InsetItemType = Required<Pick<AutoTokenModel, 'key' | 'requestTokenU
   Partial<Omit<AutoTokenModel, 'key' | 'headers'>> & { headers?: Partial<AutoTokenModel['headers']> };
 export const defaultHeaders = {
   'vscode-machineid': '4b01dcbd455bdb9b67e196b03672a81e9b7fd071a0df0a6bc6c27495e7c3b9e9',
-  'editor-version': 'vscode/1.84.2',
-  'editor-plugin-version': 'copilot-chat/0.10.1',
+  'editor-version': 'vscode/1.86.2',
+  'editor-plugin-version': 'copilot-chat/0.12.2',
   'openai-organization': 'github-copilot',
   'openai-intent': 'conversation-panel',
+  'copilot-integration-id': 'vscode-chat',
   'content-type': 'application/json',
-  'user-agent': 'GitHubCopilotChat/0.10.1',
+  'user-agent': 'GitHubCopilotChat/0.12.2',
+  'x-github-api-version': '2023-07-07',
 };
 const autoTokenSchema = new Schema<AutoTokenModel>(
   {

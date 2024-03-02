@@ -158,7 +158,7 @@ class TokenDB {
     const [doc, docErr] = await awaitWrap(autoTokenDB.getIdleAutoToken());
     if (!doc || docErr) {
       await autoTokenDB.close().catch(console.error);
-      return Promise.reject();
+      return Promise.reject({ type: 'NO_ONE_OR_DB_ERROR' });
     }
     // 还在有效期内，直接使用
     if (doc.token && doc.tokenExpiredTime && doc.tokenExpiredTime.getTime() > Date.now()) {
@@ -216,7 +216,21 @@ class ApiChannelScheduler extends TokenDB {
       if (!fn) {
         continue;
       }
-      const getTokenInfo = retry(() => fn.call(_this), { times: 2 }); // 换取token出错，数据库出错，等等会再重试一次；
+      // 换取token出错，数据库出错，等等会再重试
+      const getTokenInfo = retry(() => fn.call(_this), {
+        times: 4,
+        async assessment(type, data) {
+          if (type === 'catch') {
+            if (data?.type === 'NO_ONE_OR_DB_ERROR') {
+              // 当前没有可用的token或者数据库报错时
+              return false;
+            }
+            // 重试四次是，可以遍历所有的key
+            return true;
+          }
+          return false;
+        },
+      });
       const [tokenInfo] = await awaitWrap(getTokenInfo);
       if (tokenInfo) {
         return {

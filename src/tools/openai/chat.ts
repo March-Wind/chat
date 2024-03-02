@@ -182,7 +182,6 @@ class Chat {
       });
     const answer = await this.callOpenAi().catch((err: any) => {
       console.log(err);
-      debugger;
     });
     if (this.stream) {
       for await (const chunk of answer as unknown as Stream<ChatCompletionChunk>) {
