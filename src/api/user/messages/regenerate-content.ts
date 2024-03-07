@@ -179,6 +179,11 @@ const regenerateContent = (router: Router) => {
             stopFn();
           }
         },
+        errCb(err) {
+          console.log('regenerate-content', err);
+          answerStream?.write(`${JSON.stringify([{ error: '对话接口出错，请稍后再试~' }])}\n\n`);
+          stopFn();
+        },
       })
       .catch((err) => {
         console.log('regenerate-content', err);

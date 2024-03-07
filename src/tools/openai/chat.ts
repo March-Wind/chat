@@ -174,7 +174,7 @@ class Chat {
     cb?: (data: ChatCompletion) => void;
     errCb?: (err: any) => void;
   }): Promise<unknown> {
-    const { question, cb, streamCb } = params;
+    const { question, cb, streamCb, errCb } = params;
     question &&
       this.askContent.push({
         role: 'user',
@@ -182,7 +182,11 @@ class Chat {
       });
     const answer = await this.callOpenAi().catch((err: any) => {
       console.log(err);
+      errCb?.('接口出错，请稍后再试~');
     });
+    if (!answer) {
+      return;
+    }
     if (this.stream) {
       for await (const chunk of answer as unknown as Stream<ChatCompletionChunk>) {
         if (!chunk.id) {
