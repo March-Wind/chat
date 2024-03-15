@@ -43,11 +43,11 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
       return res.json();
     })
     .then(async (result: Four_party_Token_Response) => {
-      if (result && 'token' in result) {
+      if (result && 'token' in result && result.token) {
         // to perfect 保存token到数据库时，错误处理
         const currentTime = new Date();
         // 增加10分钟
-        currentTime.setMinutes(currentTime.getMinutes() + 10);
+        currentTime.setMinutes(currentTime.getMinutes() + 30);
 
         await awaitWrap(autoTokenDB.updateOne(doc.key, { token: result.token, tokenExpiredTime: currentTime }));
         return { ...doc, token: result.token };
