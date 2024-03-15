@@ -4,7 +4,8 @@ import bodyParser from 'koa-bodyparser';
 import router from './createRoutes';
 // import session from 'koa-session'
 // import jwt from 'jsonwebtoken';
-import { userTemporaryStore } from './tools/mongodb/setting/user-temporary';
+// import { userTemporaryStore } from './tools/mongodb/setting/user-temporary';
+import { userTemporaryStore } from '@/tools/mongodb/setting/user-temporary';
 // import SessionStore from './tools/mongodb/setting/session';
 // import { v4 as uuidV4 } from 'uuid';
 // import { isObject } from './tools/variable-type';

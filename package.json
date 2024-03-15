@@ -90,7 +90,7 @@
     "@koa/router": "^12.0.0",
     "@marchyang/enhanced_promise": "^1.2.5",
     "@marchyang/lib-core": "^1.0.8",
-    "@marchyang/pack": "1.0.3",
+    "@marchyang/pack": "^1.1.0",
     "@types/jsonwebtoken": "^9.0.2",
     "@types/koa-session": "^6.4.1",
     "axios": "^1.3.4",
