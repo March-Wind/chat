@@ -15,18 +15,45 @@ const keys: InsetItemType[] = [
   //   estimatedEndTime: '2024-11-01',
   //   headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
   // },
+  // {
+  //   key: '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',
+  //   requestTokenUrl: 'https://api.github.com/copilot_internal/v2/token',
+  //   startTime: '2024-03-06',
+  //   estimatedEndTime: '2025-03-6',
+  //   headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
+  // },
+  // 授权密钥：X9J8C47NO7TM0VFEP6ZPPTOG
+  // 使用文档: https://www.kdocs.cn/l/ceIxyd0Ki1t6?openfrom=docs
   {
-    key: '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',
-    requestTokenUrl: 'https://api.github.com/copilot_internal/v2/token',
+    key: 'ghu_mo31n4ve4Nrs4L7Qk2sP7m1m_d3U-aGOO-csVHd-yGTxp7yyzFBnWw',
+    requestTokenUrl: 'http://123.207.0.93/copilot_internal/v2/token',
     startTime: '2024-03-06',
-    estimatedEndTime: '2025-03-6',
+    estimatedEndTime: '2025-03-6', // 一年
+    headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
+  },
+
+  {
+    key: 'NzYyOC5iYjNhNDlkZTQyZTM4NzE5NzFjMzU4NDk2MGZlMThkNQ==',
+    requestTokenUrl: 'http://124.220.157.23:8800/copilot_internal/v2/token',
+    startTime: '2024-01-26',
+    estimatedEndTime: '2025-01-26', // 1年
     headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
   },
   {
-    key: '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',
-    requestTokenUrl: 'https://api.github.com/copilot_internal/v2/token',
-    startTime: '2024-03-06',
-    estimatedEndTime: '2025-03-6',
+    key: 'NzYyOC43NWQyN2RhNjkwZjFkMmE1ZDJmMDRiYTMwN2U2YzQ4NQ==',
+    requestTokenUrl: 'http://124.220.157.23:8800/copilot_internal/v2/token',
+    startTime: '2024-01-26',
+    estimatedEndTime: '2025-01-26', // 1年
+    headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
+  },
+  // 授权密钥：X9J8C47NO7TM0VFEP6ZPPTOG
+  // 使用文档: https://www.kdocs.cn/l/ceIxyd0Ki1t6?openfrom=docs
+  // curl -H 'authorization: token ghu_N3Z1AAiTFBMQrLIG_GzYFUdKss7Oyo9TID1MkNQq228Ie8Udv4DzLw' -H 'editor-version: vscode/1.86.2' -H 'editor-plugin-version: copilot/1.172.0' -H 'host: 119.45.194.195:50000' -H 'user-agent: GithubCopilot/1.172.0' -H 'accept: */*' --compressed 'http://119.45.194.195:50000/copilot_internal/v2/token'
+  {
+    key: 'ghu_N3Z1AAiTFBMQrLIG_GzYFUdKss7Oyo9TID1MkNQq228Ie8Udv4DzLw',
+    requestTokenUrl: 'http://119.45.194.195:50000/copilot_internal/v2/token',
+    startTime: '2024-01-26',
+    estimatedEndTime: '2100-01-26', // 一年
     headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
   },
   {

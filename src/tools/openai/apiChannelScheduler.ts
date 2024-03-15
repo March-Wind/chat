@@ -14,6 +14,13 @@ const httpAgent = proxy ? new SocksProxyAgent(proxy) : undefined;
 const exchangeCopilotToken = async (doc: AutoTokenModel) => {
   const autoTokenDB = new AutoToken();
 
+  // AbortController was added in node v14.17.0 globally
+  const AbortController = globalThis.AbortController || (await import('abort-controller'));
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => {
+    controller.abort();
+  }, 1000);
   const url = doc.requestTokenUrl;
   return fetch(url, {
     headers: {
@@ -30,6 +37,7 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
         accept: '*/*',
       },
     },
+    signal: controller.signal,
   })
     .then((res: any) => {
       return res.json();
@@ -56,6 +64,7 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
     })
     .finally(() => {
       autoTokenDB.close();
+      clearTimeout(timeout);
     });
 };
 
