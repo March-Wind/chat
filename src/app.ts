@@ -68,7 +68,8 @@ app.use(
         // return true;
         return 'http://127.0.0.1:4000';
       }
-      if (ctx.request.headers.referer && /https:\/\/www\.qunyangbang\.cn\/$/.test(ctx.request.headers.referer)) {
+      const origin = ctx.request.headers.referer;
+      if (origin && /https:\/\/www\.qunyangbang\.cn\//.test(origin)) {
         return 'https://www.qunyangbang.cn';
       }
       return false;
