@@ -105,36 +105,46 @@ class Chat {
     const answerFn = async () => {
       const caller = await apiChannelScheduler.returnAPICaller();
       _this.caller = caller;
+      const AbortController = globalThis.AbortController || (await import('abort-controller'));
+      const controller = new AbortController();
+      const timer = setTimeout(() => {
+        controller.abort();
+      }, 2000);
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      return caller.openai.chat.completions.create(
-        {
-          model: model,
-          messages: this.askContent,
-          stream,
-          temperature: this.temperature,
-          frequency_penalty: this.frequency_penalty || 0.5,
-          presence_penalty: this.presence_penalty || 0.5,
-          top_p: 1,
-          n: 1,
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          // @ts-ignore
-          // response_format: { "type": "json_object" },
-          // stream: true
-        },
-        {
-          // httpsAgent: agent,
-          ...caller.axiosRequestConfig,
-          // ...(stream ? { responseType: 'stream' } : {}),
-          // responseType: 'stream',
-          stream: true,
-          // proxy: false,
-        },
-      );
+      return caller.openai.chat.completions
+        .create(
+          {
+            model: model,
+            messages: this.askContent,
+            stream,
+            temperature: this.temperature,
+            frequency_penalty: this.frequency_penalty || 0.5,
+            presence_penalty: this.presence_penalty || 0.5,
+            top_p: 1,
+            n: 1,
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            // @ts-ignore
+            // response_format: { "type": "json_object" },
+            // stream: true
+          },
+          {
+            // httpsAgent: agent,
+            ...caller.axiosRequestConfig,
+            // ...(stream ? { responseType: 'stream' } : {}),
+            // responseType: 'stream',
+            stream: true,
+            signal: controller.signal,
+            // proxy: false,
+          },
+        )
+        .finally(() => {
+          clearTimeout(timer);
+        });
     };
 
     const answer = retry(answerFn, {
-      times: 2,
+      times: 3,
       assessment: async (type, data) => {
         if (type === 'catch') {
           switch (data?.status) {

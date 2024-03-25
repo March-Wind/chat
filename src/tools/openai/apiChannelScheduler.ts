@@ -20,7 +20,7 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
   const controller = new AbortController();
   const timeout = setTimeout(() => {
     controller.abort();
-  }, 1000);
+  }, 3000);
   const url = doc.requestTokenUrl;
   return fetch(url, {
     headers: {
@@ -54,12 +54,17 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
       }
       return Promise.reject(result);
     })
-    .catch((err: Four_party_Token_Response_Fail | unknown) => {
+    .catch(async (err: Four_party_Token_Response_Fail | unknown) => {
       console.error('获取copilot token失败: ', err);
       // Internal Server Error.
       if (err && isObject(err) && 'message' in err && err.message === 'Invalid token.') {
         // token失效
       }
+      // 最终设置冷静期
+      const currentTime = new Date();
+      currentTime.setMinutes(currentTime.getMinutes() + 3);
+      // 设置交换token的冷静期
+      await autoTokenDB.updateOne(doc.key, { keyState: 'idle', exChangeTokenRestTime: currentTime });
       return Promise.reject(err);
     })
     .finally(() => {
@@ -175,13 +180,7 @@ class TokenDB {
     }
     // 这里重试换token
     // return retry(() => exchangeCopilotToken(doc), { times: 2, delay: 500 }).catch(async (err) => {
-    return exchangeCopilotToken(doc).catch(async (err) => {
-      const currentTime = new Date();
-      currentTime.setMinutes(currentTime.getMinutes() + 3);
-      // 设置交换token的冷静期
-      await autoTokenDB.updateOne(doc.key, { keyState: 'idle', exChangeTokenRestTime: currentTime });
-      return Promise.reject(err);
-    });
+    return exchangeCopilotToken(doc);
   }
 
   async getOpenaiToken(): Promise<
