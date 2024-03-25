@@ -157,6 +157,15 @@ class Chat {
                 });
               return true;
             }
+            case 403: {
+              // 禁止访问，目前来看，token不会刷新,那就过一段时间再请求
+              await (this.caller as EncapsulatedCopilot)
+                ?.updateCopilotTokenState?.({ deleteTokenField: true, exchangeTokenRest: true })
+                .catch((err: any) => {
+                  console.log('updateCopilotTokenState: db出错：', err);
+                });
+              return true;
+            }
             case 429: {
               // 速率限制
               await (this.caller as EncapsulatedCopilot)

@@ -142,8 +142,12 @@ export class EncapsulatedCopilot {
       value: params.key,
     });
   }
-  async updateCopilotTokenState(params?: { deleteTokenField?: boolean; rateLimiting?: boolean }) {
-    const { deleteTokenField = false, rateLimiting = false } = params || {};
+  async updateCopilotTokenState(params?: {
+    deleteTokenField?: boolean;
+    rateLimiting?: boolean;
+    exchangeTokenRest?: boolean;
+  }) {
+    const { deleteTokenField = false, rateLimiting = false, exchangeTokenRest = false } = params || {};
     const autoTokenDB = new AutoToken();
     const currentTime = new Date();
     currentTime.setMinutes(currentTime.getMinutes() + 3);
@@ -151,6 +155,7 @@ export class EncapsulatedCopilot {
       keyState: 'idle',
       ...(deleteTokenField ? { token: '' } : {}),
       ...(rateLimiting ? { rateLimiting: currentTime } : {}),
+      ...(exchangeTokenRest ? { exChangeTokenRestTime: currentTime } : {}),
     });
     await autoTokenDB.close();
   }
