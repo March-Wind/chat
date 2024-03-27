@@ -30,6 +30,7 @@ const keys: InsetItemType[] = [
   {
     key: 'ghu_N3Z1AAiTFBMQrLIG_GzYFUdKss7Oyo9TID1MkNQq228Ie8Udv4DzLw',
     requestTokenUrl: 'http://119.45.194.195:50000/copilot_internal/v2/token',
+    tokenType: 'copilot',
     startTime: '2024-01-26',
     estimatedEndTime: '2100-01-26', // 一年
     headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
@@ -37,12 +38,14 @@ const keys: InsetItemType[] = [
   {
     key: 'NzYyOC5iYjNhNDlkZTQyZTM4NzE5NzFjMzU4NDk2MGZlMThkNQ==',
     requestTokenUrl: 'http://124.220.157.23:8800/copilot_internal/v2/token',
+    tokenType: 'copilot',
     startTime: '2024-01-26',
     estimatedEndTime: '2025-01-26', // 1年
     headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
   },
   {
     key: 'ghu_mo31n4ve4Nrs4L7Qk2sP7m1m_d3U-aGOO-csVHd-yGTxp7yyzFBnWw',
+    tokenType: 'copilot',
     requestTokenUrl: 'http://123.207.0.93/copilot_internal/v2/token',
     startTime: '2024-03-06',
     estimatedEndTime: '2025-03-6', // 一年
@@ -50,6 +53,7 @@ const keys: InsetItemType[] = [
   },
   {
     key: 'MTkxNy40MGRhYTk0MThhZmVkOGRjNDRmOTZjNzBkZDQzMDIyZQ==',
+    tokenType: 'copilot',
     requestTokenUrl: 'http://124.220.157.23:8800/copilot_internal/v2/token',
     startTime: '2024-01-26',
     estimatedEndTime: '2100-01-26', // 号称永久有效
@@ -57,6 +61,7 @@ const keys: InsetItemType[] = [
   },
   {
     key: 'NzYyOC43NWQyN2RhNjkwZjFkMmE1ZDJmMDRiYTMwN2U2YzQ4NQ==',
+    tokenType: 'copilot',
     requestTokenUrl: 'http://124.220.157.23:8800/copilot_internal/v2/token',
     startTime: '2024-01-26',
     estimatedEndTime: '2025-01-26', // 1年
@@ -64,10 +69,20 @@ const keys: InsetItemType[] = [
   },
   {
     key: 'MTkxNy44MDY0Nzk0NjBhNzViMDQ4YzlkZGRkNDliYmY2MzI0Mg==',
+    tokenType: 'copilot',
     requestTokenUrl: 'http://124.220.157.23:8800/copilot_internal/v2/token',
     startTime: '2024-01-26',
     estimatedEndTime: '2100-01-26', // 号称永久有效
     headers: { ...defaultHeaders, 'vscode-machineid': randomString(64) },
+  },
+  {
+    key: 'transfer1',
+    tokenType: 'transfer',
+    requestTokenUrl: '',
+    startTime: '2024-01-26',
+    estimatedEndTime: '2100-01-26', // 用完为止
+    token: 'ak-JRZ97gl33ArvhDKbv4Qr4c3ZWWKnSoEAhFSlEuzXilBzcufl',
+    origin: 'https://api.appsiri.cn',
   },
 ];
 

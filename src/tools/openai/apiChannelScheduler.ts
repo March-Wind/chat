@@ -21,7 +21,7 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
   const timeout = setTimeout(() => {
     controller.abort();
   }, 3000);
-  const url = doc.requestTokenUrl;
+  const url = doc.requestTokenUrl!;
   return fetch(url, {
     headers: {
       Authorization: `token ${doc.key}`,
@@ -77,6 +77,7 @@ interface Params {
   apiKey: string;
   headers?: Record<string, string>;
   key: string;
+  origin?: string;
 }
 
 export class EncapsulatedOpenAI {
@@ -95,6 +96,49 @@ export class EncapsulatedOpenAI {
         httpAgent,
       },
     });
+  }
+}
+
+export class EncapsulatedTransferOpenAI {
+  openai: OpenAI;
+  axiosRequestConfig: RequestOptions;
+  key: string;
+  constructor(params: Params) {
+    this.openai = new OpenAI({
+      apiKey: params.apiKey,
+      baseURL: params.origin,
+    });
+    Object.defineProperty(this, 'axiosRequestConfig', {
+      enumerable: true,
+      configurable: false,
+      writable: false,
+      value: {
+        httpAgent,
+      },
+    });
+    Object.defineProperty(this, 'key', {
+      enumerable: true,
+      configurable: false,
+      writable: false,
+      value: params.key,
+    });
+  }
+  async updateCopilotTokenState(params?: {
+    deleteTokenField?: boolean;
+    rateLimiting?: boolean;
+    exchangeTokenRest?: boolean;
+  }) {
+    const { deleteTokenField = false, rateLimiting = false, exchangeTokenRest = false } = params || {};
+    const autoTokenDB = new AutoToken();
+    const currentTime = new Date();
+    currentTime.setMinutes(currentTime.getMinutes() + 3);
+    await autoTokenDB.updateOne(this.key, {
+      keyState: 'idle',
+      ...(deleteTokenField ? { token: '' } : {}),
+      ...(rateLimiting ? { rateLimiting: currentTime } : {}),
+      ...(exchangeTokenRest ? { exChangeTokenRestTime: currentTime } : {}),
+    });
+    await autoTokenDB.close();
   }
 }
 
@@ -187,7 +231,14 @@ class TokenDB {
     // return retry(() => exchangeCopilotToken(doc), { times: 2, delay: 500 }).catch(async (err) => {
     return exchangeCopilotToken(doc);
   }
-
+  async getTransferOpenaiToken(): Promise<TokenInfo> {
+    const autoTokenDB = new AutoToken();
+    const [doc, docErr] = await awaitWrap(autoTokenDB.getIdleAutoToken('transfer'));
+    if (!doc || docErr) {
+      return Promise.reject('没有可用的transfer的token');
+    }
+    return { key: 'transfer', token: doc.token!, origin: doc.origin };
+  }
   async getOpenaiToken(): Promise<
     Required<Pick<AutoTokenModel, 'key' | 'token'>> & Partial<Omit<AutoTokenModel, 'key' | 'token'>>
   > {
@@ -195,7 +246,7 @@ class TokenDB {
   }
 }
 class ApiChannelScheduler extends TokenDB {
-  static queue = ['COPILOT_TOKEN', 'OPENAI_TOKEN'] as const;
+  static queue = ['COPILOT_TOKEN', 'TRANSFER_TOKEN', 'OPENAI_TOKEN'] as const;
   private channelMap: Map<
     (typeof ApiChannelScheduler.queue)[number],
     {
@@ -205,6 +256,7 @@ class ApiChannelScheduler extends TokenDB {
   > = new Map([
     ['COPILOT_TOKEN', { tokenGetterFnName: 'getCopilotToken', ApiCaller: EncapsulatedCopilot }],
     ['OPENAI_TOKEN', { tokenGetterFnName: 'getOpenaiToken', ApiCaller: EncapsulatedOpenAI }],
+    ['TRANSFER_TOKEN', { tokenGetterFnName: 'getTransferOpenaiToken', ApiCaller: EncapsulatedTransferOpenAI }],
   ]);
   constructor() {
     super();
@@ -267,6 +319,7 @@ class ApiChannelScheduler extends TokenDB {
       apiKey: tokenInfo.token,
       key: tokenInfo.key,
       headers: tokenInfo.headers,
+      origin: tokenInfo.origin,
     });
   }
 }

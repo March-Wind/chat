@@ -6,8 +6,10 @@ import type { Model, Types, FilterQuery } from 'mongoose';
 export interface AutoTokenModel {
   key: string;
   keyState: 'occupied' | 'idle' | 'expired';
+  tokenType: 'copilot' | 'transfer' | 'openai';
+  origin: string;
   times: number;
-  requestTokenUrl: string;
+  requestTokenUrl?: string;
   token?: string;
   tokenExpiredTime?: Date;
   startTime?: string;
@@ -47,7 +49,15 @@ const autoTokenSchema = new Schema<AutoTokenModel>(
       default: 'idle',
       required: true,
     },
-    requestTokenUrl: { type: String, required: true },
+    tokenType: {
+      type: String,
+      enum: ['copilot', 'transfer', 'openai'],
+      required: true,
+    },
+    origin: {
+      type: String,
+    },
+    requestTokenUrl: { type: String },
     token: { type: String },
     tokenExpiredTime: { type: Date },
     times: { type: Number, required: true, default: 0 },
@@ -149,12 +159,12 @@ class AutoToken extends Elementary {
     const { model } = this;
     return await model.findOneAndUpdate(query, { $set: data });
   }
-  async getIdleAutoToken() {
+  async getIdleAutoToken(tokenType: AutoTokenModel['tokenType'] = 'copilot') {
     const data = await this.findOneAndUpdate(
       // 当前时间超出速率限制时间，和超出交换token冷静期
       {
         $and: [
-          { keyState: 'idle' },
+          { keyState: 'idle', tokenType: tokenType },
           { $or: [{ exChangeTokenRestTime: { $exists: false } }, { exChangeTokenRestTime: { $lt: new Date() } }] },
           { $or: [{ rateLimiting: { $exists: false } }, { rateLimiting: { $lt: new Date() } }] },
         ],
@@ -166,7 +176,7 @@ class AutoToken extends Elementary {
         //   exChangeTokenRestTime: { $lt: new Date() }, rateLimiting: { $lt: new Date() }
       },
 
-      { keyState: 'occupied' },
+      tokenType === 'copilot' ? { keyState: 'occupied' } : {},
     );
     if (!data) {
       return '';
