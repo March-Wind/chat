@@ -23,7 +23,7 @@ const exchangeCopilotToken = async (doc: AutoTokenModel) => {
   }, 3000);
   const url = doc.requestTokenUrl!;
   return fetch(url, {
-    headers: {
+    headers: doc.requestTokenHeaders || {
       Authorization: `token ${doc.key}`,
       ...{
         'Editor-Version': 'vscode/1.84.2',
@@ -149,7 +149,7 @@ export class EncapsulatedCopilot {
   constructor(params: Params) {
     this.openai = new OpenAI({
       apiKey: params.apiKey,
-      baseURL: 'https://api.githubcopilot.com/',
+      baseURL: params.origin || 'https://api.githubcopilot.com/',
     });
     const requestId =
       randomString(8) + '-' + randomString(4) + '-' + randomString(4) + '-' + randomString(4) + '-' + randomString(12);

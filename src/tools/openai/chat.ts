@@ -109,7 +109,7 @@ class Chat {
       const controller = new AbortController();
       const timer = setTimeout(() => {
         controller.abort();
-      }, 2000);
+      }, 8000);
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
       return caller.openai.chat.completions
@@ -221,8 +221,18 @@ class Chat {
         streamCb?.(chunk);
       }
     } else {
-      this.handleMessage(answer as ChatCompletion);
-      cb?.(answer as ChatCompletion);
+      let _msg = answer;
+      if (typeof answer === 'string') {
+        try {
+          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+          // @ts-ignore
+          _msg = JSON.parse(answer.replace(/^\n|\n*$/, ''));
+        } catch (error) {
+          /* empty */
+        }
+      }
+      this.handleMessage(_msg as ChatCompletion);
+      cb?.(_msg as ChatCompletion);
     }
   }
   async close() {

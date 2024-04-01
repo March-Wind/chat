@@ -16,16 +16,8 @@ export interface AutoTokenModel {
   estimatedEndTime?: string;
   rateLimiting?: Date;
   exChangeTokenRestTime?: Date;
-  headers?: {
-    // 'x-request-id': string;
-    // 'vscode-sessionid': string;
-    'vscode-machineid': string;
-    'editor-version': string;
-    'editor-plugin-version': string;
-    'openai-organization': string;
-    'openai-intent': string;
-    'user-agent': string;
-  };
+  requestTokenHeaders?: Record<string, string>;
+  headers?: Record<string, string>;
 }
 export type InsetItemType = Required<Pick<AutoTokenModel, 'key' | 'requestTokenUrl'>> &
   Partial<Omit<AutoTokenModel, 'key' | 'headers'>> & { headers?: Partial<AutoTokenModel['headers']> };
@@ -40,6 +32,7 @@ export const defaultHeaders = {
   'user-agent': 'GitHubCopilotChat/0.12.2',
   'x-github-api-version': '2023-07-07',
 };
+
 const autoTokenSchema = new Schema<AutoTokenModel>(
   {
     key: { type: String, required: true, index: true },
@@ -65,6 +58,9 @@ const autoTokenSchema = new Schema<AutoTokenModel>(
     estimatedEndTime: { type: String, required: true },
     rateLimiting: { type: Date },
     exChangeTokenRestTime: { type: Date },
+    requestTokenHeaders: {
+      type: Object,
+    },
     headers: {
       type: Object,
       required: true,
