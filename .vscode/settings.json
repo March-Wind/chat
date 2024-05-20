@@ -8,5 +8,8 @@
   "eslint.options": {
     "overrideConfigFile": ".eslintrc.cjs"
   },
-  "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[markdown]": {
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint"
+  }
 }

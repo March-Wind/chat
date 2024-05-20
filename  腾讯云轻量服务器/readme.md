@@ -52,4 +52,11 @@
 
 - 启动 chat_server
 
-  `cd /www/wwwroot/chat/chat_server && export OPENAI_API_KEY=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 && pm2 start ecosystem.config.js`
+  `cd /www/wwwroot/chat/chat_server && export OPENAI_API_KEY=xxx && pm2 start ecosystem.config.js`
+
+### 中转 api
+
+> 使用 CloudFlare Pages 利用其的 Functions 部署中转。 https://github.com/x-dr/chatgptProxyAPI/blob/main/docs/cloudflare_proxy_pages.md
+
+1. 域名：proxy-api-ch5.pages.dev
+2.
