@@ -8,6 +8,15 @@
 
 > 内置角色：https://www.mongodb.com/docs/manual/reference/built-in-roles/
 
+## 问题
+
+1. openCloudOS 9, 安装时选择redHat,选择后会自动显示`redHat/centos x64`
+2. 解压后，bin文件夹下之前有`mongo.conf`，`mongodb 8.09`版本没有，可以自己在bin文件夹下创建`mongo.conf`,启动时`./mongod --config mongodb.conf`
+3. `/www/server/mongodb/bin/mongod: error while loading shared libraries: libcrypto.so.1.1: cannot open shared object file: No such file or directory`
+   1. sudo dnf install -y compat-openssl11
+   2. find / -name "libcrypto.so.1.1" 2>/dev/null
+      1. 若输出类似 /usr/lib64/libcrypto.so.1.1，则成功
+   
 ## 启动 mongodb
  
 1. 安装好 mongodb
@@ -16,10 +25,70 @@
    > mongod --dbpath=/Users/xmly/Documents/shadow/chat-gpt/chat/mongodb/data --logpath=/Users/xmly/Documents/shadow/
    chat-gpt/chat/mongodb/log/mongo.log
    > mongod --dbpath=/Users/xmly/Documents/gitlab/db/data --logpath=/Users/xmly/Documents/gitlab/db/log/mongo.log
+   > /www/server/mongodb/bin/mongod --dbpath=/www/server/mongodb/data --logpath=/www/server/mongodb/log/mongo.log
 4. 查看后台进程和关闭：
    - ps aux | grep mongod 和 kill pid
    - sudo systemctl stop mongod(使用 systemctl（仅限于使用 systemd 的 Linux 发行版)
    - sudo service mongod stop(使用 service 命令（仅限于使用 init 的 Linux 发行版)
+sudo service /www/server/mongodb/bin/mongod stop
+
+## 使用`mongo.conf`文件进行配置参数
+```
+# 设置数据文件的存放目录
+storage:
+  dbPath: ../data
+
+# 设置日志文件的存放目录及其日志文件名
+systemLog:
+  destination: file
+  path: ../logs/mongodb.log
+  logRotate: reopen
+  logAppend: true
+  verbosity: 0
+
+# 设置端口号（默认的端口号是 27017）
+net:
+  port: 27099
+  bindIp: 0.0.0.0
+
+# 设置为以守护进程的方式运行，即在后台运行
+# fork: true
+
+# 防止通过HTTP进行访问，3版本以后就没有这个参数了
+# nohttpinterface: true
+
+
+
+# 开启校验用户
+# noauth: false
+
+# 启用身份验证
+security:
+  authorization: enabled
+
+setParameter:
+  enableLocalhostAuthBypass: 0
+  
+#设置为以守护进程的方式运行
+processManagement:
+   fork: true
+
+```
+启动参数直接`/www/server/mongodb/bin/mongod`启动
+
+## 创建身份账户
+```
+use('admin');
+
+db.createUser({
+  user: "xxx",
+  pwd: "xxx",
+  roles: [
+    { role: "userAdminAnyDatabase", db: "admin" },
+    { role: "readWriteAnyDatabase", db: "admin" }
+  ]
+})
+```
 
 ## mongodb 文档大小优化
 
