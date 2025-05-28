@@ -9,11 +9,13 @@
 > 内置角色：https://www.mongodb.com/docs/manual/reference/built-in-roles/
 
 ## 启动 mongodb
-
+ 
 1. 安装好 mongodb
 2. 创建 db 目录和 log 目录，log 目录里面有 mongo.log，是 logpath
 3. 启动 mongodb:
-   > mongod --dbpath=/Users/xmly/Documents/shadow/chat-gpt/chat/mongodb/data --logpath=/Users/xmly/Documents/shadow/chat-gpt/chat/mongodb/log/mongo.log
+   > mongod --dbpath=/Users/xmly/Documents/shadow/chat-gpt/chat/mongodb/data --logpath=/Users/xmly/Documents/shadow/
+   chat-gpt/chat/mongodb/log/mongo.log
+   > mongod --dbpath=/Users/xmly/Documents/gitlab/db/data --logpath=/Users/xmly/Documents/gitlab/db/log/mongo.log
 4. 查看后台进程和关闭：
    - ps aux | grep mongod 和 kill pid
    - sudo systemctl stop mongod(使用 systemctl（仅限于使用 systemd 的 Linux 发行版)
