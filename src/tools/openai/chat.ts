@@ -98,7 +98,7 @@ class Chat {
     if (/gpt-4/.test(model)) {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      model = 'gpt-4-turbo-preview';
+      model = 'gpt-4.1-mini';
     }
     const _this = this;
 
