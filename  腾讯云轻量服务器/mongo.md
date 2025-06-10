@@ -26,6 +26,7 @@
    chat-gpt/chat/mongodb/log/mongo.log
    > mongod --dbpath=/Users/xmly/Documents/gitlab/db/data --logpath=/Users/xmly/Documents/gitlab/db/log/mongo.log
    > /www/server/mongodb/bin/mongod --dbpath=/www/server/mongodb/data --logpath=/www/server/mongodb/log/mongo.log
+   > `cd /www/server/mongodb/bin && ./mongod --config mongodb.conf`
 4. 查看后台进程和关闭：
    - ps aux | grep mongod 和 kill pid
    - sudo systemctl stop mongod(使用 systemctl（仅限于使用 systemd 的 Linux 发行版)
