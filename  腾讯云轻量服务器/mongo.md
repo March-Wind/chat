@@ -1,15 +1,5 @@
 ## 安装
 
-> mac: https://juejin.cn/post/7052585815037673479
-
-> centos: https://juejin.cn/post/7163071747414032391
-
-> 远程连接+身份认证：https://blog.csdn.net/jianleking/article/details/79715097
-
-> 内置角色：https://www.mongodb.com/docs/manual/reference/built-in-roles/
-
-## 问题
-
 1. openCloudOS 9, 安装时选择redHat,选择后会自动显示`redHat/centos x64`
 2. 解压后，bin文件夹下之前有`mongo.conf`，`mongodb 8.09`版本没有，可以自己在bin文件夹下创建`mongo.conf`,启动时`./mongod --config mongodb.conf`
 3. `/www/server/mongodb/bin/mongod: error while loading shared libraries: libcrypto.so.1.1: cannot open shared object file: No such file or directory`
@@ -91,45 +81,17 @@ db.createUser({
 })
 ```
 
-## mongodb 文档大小优化
+## 参考
 
-#### 高并发发送求报错
+> mac: https://juejin.cn/post/7052585815037673479
 
-```
-Error: getaddrinfo ENOTFOUND push2his.eastmoney.com
-       at GetAddrInfoReqWrap.onlookup [as oncomplete] (dns.js:69:26)
-       at GetAddrInfoReqWrap.callbackTrampoline (internal/async_hooks.js:131:17)
-```
+> centos: https://juejin.cn/post/7163071747414032391
 
-定位问题是 DNS 服务器解析遇到了错误
-解决办法：
+> 远程连接+身份认证：https://blog.csdn.net/jianleking/article/details/79715097
 
-```
-var options = {
-  host: '_host_',
-  family: 4, // 设置解析是ipv4，默认是是ipv4和ipv6
-  port: 80,
-  path: '/'
-};
-http.get(options, cb);
-```
+> 内置角色：https://www.mongodb.com/docs/manual/reference/built-in-roles/
 
-出自： https://github.com/nodejs/node/issues/5436
-As a workaround, try http.get({ family: 4, ... }, cb), that tells node not to use AI_V4MAPPED. Use { family: 6 } if you want an IPv6 connection.
 
-<!-- 猜想是：dns 模块对域名解析有一定的性能限制，当并发量达到一定程度时，就会出现超时，从而导致各种问题。那为什么使用IP-v4就能得到一定程度的改善呢？我的猜想是：默认情况下，dns 模块使用的是IP-v4和IP-v6进行域名解析，在切换解析规则时或者使用不同的规则对性能有一定的依赖，当指定使用IP-v4的时候，能够使得 dns 模块发挥最佳的性能，从而使问题得到一定的改善。 -->
-
-附录：
-
-1. IPv6 与 IPv4 的互操作性：https://tinypiggy.github.io/2019/06/24/unp-note/#ipv4%E5%AE%A2%E6%88%B7%E7%AB%AF%E8%BF%9E%E6%8E%A5ipv6%E6%9C%8D%E5%8A%A1%E7%AB%AF
-2. node dns 模块：https://nodejs.org/api/dns.html
-   其他常见错误：
-3. host 或者 hostname 写错格式，比如`host`的值写成了`http://www.baidu.com`,理应只写主机名`hostname:www.baidu.com`
-
-### "module": "es2015" 指定生成哪个模块系统代码，这会影响 ts-node 的调用。
-
-4. 下载 node 链接 mongodb 的驱动器：npm install mongodb
-5. 配置本地 mongodb：https://juejin.cn/post/7052585815037673479
 
 ## mongoDB 安全
 
