@@ -4,7 +4,7 @@ import { retry } from '@marchyang/enhanced_promise';
 import type { ChatCompletionMessageParam, ChatCompletionChunk } from 'openai/src/resources/chat/completions';
 import type { Stream } from 'openai/src/streaming';
 import type { ChatCompletion } from 'openai/resources/index';
-import type { EncapsulatedOpenAI, EncapsulatedCopilot } from './apiChannelScheduler';
+import type { EncapsulatedOpenAI, EncapsulatedCopilot, EncapsulatedTransferOpenAI } from './apiChannelScheduler';
 // ChatCompletion, ChatCompletionMessageParam
 // import type { Stream_ChatCompletion } from './types';
 export interface Props {
@@ -146,6 +146,7 @@ class Chat {
     const answer = retry(answerFn, {
       times: 3,
       assessment: async (type, data) => {
+        await (this.caller as EncapsulatedTransferOpenAI)?.decreaseTimes?.();
         if (type === 'catch') {
           switch (data?.status) {
             case 401: {
@@ -178,6 +179,7 @@ class Chat {
           }
           return false;
         }
+
         return false;
       },
     });

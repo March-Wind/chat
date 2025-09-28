@@ -151,19 +151,32 @@ class AutoToken extends Elementary {
   //   return await model.updateOne({ key }, { $set: data });
   // }
   @preCheckConnection
-  async findOneAndUpdate(query: FilterQuery<AutoTokenModel>, data: Partial<AutoTokenModel>) {
+  async findOneAndUpdate(query: FilterQuery<AutoTokenModel>, data: Partial<AutoTokenModel> | Record<string, any>) {
     const { model } = this;
+    // 如果 data 包含 MongoDB 操作符（如 $inc, $set 等），直接使用
+    if (data && typeof data === 'object' && Object.keys(data).some((key) => key.startsWith('$'))) {
+      return await model.findOneAndUpdate(query, data);
+    }
+    // 否则使用 $set 操作符
     return await model.findOneAndUpdate(query, { $set: data });
   }
   async getIdleAutoToken(tokenType: AutoTokenModel['tokenType'] = 'copilot') {
+    // 构建查询条件
+    const queryConditions: any[] = [
+      { keyState: 'idle', tokenType: tokenType },
+      { $or: [{ exChangeTokenRestTime: { $exists: false } }, { exChangeTokenRestTime: { $lt: new Date() } }] },
+      { $or: [{ rateLimiting: { $exists: false } }, { rateLimiting: { $lt: new Date() } }] },
+    ];
+
+    // 如果不是 copilot 类型，添加 times < 10 的条件
+    if (tokenType !== 'copilot') {
+      queryConditions.push({ times: { $lt: 10 } });
+    }
+
     const data = await this.findOneAndUpdate(
       // 当前时间超出速率限制时间，和超出交换token冷静期
       {
-        $and: [
-          { keyState: 'idle', tokenType: tokenType },
-          { $or: [{ exChangeTokenRestTime: { $exists: false } }, { exChangeTokenRestTime: { $lt: new Date() } }] },
-          { $or: [{ rateLimiting: { $exists: false } }, { rateLimiting: { $lt: new Date() } }] },
-        ],
+        $and: queryConditions,
         //     keyState: 'idle',
         //   $or: [
         //     { exChangeTokenRestTime: { $exists: false } }, // 没有exChangeTokenRestTime字段
@@ -172,13 +185,41 @@ class AutoToken extends Elementary {
         //   exChangeTokenRestTime: { $lt: new Date() }, rateLimiting: { $lt: new Date() }
       },
 
-      tokenType === 'copilot' ? { keyState: 'occupied' } : {},
+      tokenType === 'copilot' ? { keyState: 'occupied' } : { $inc: { times: 1 } },
     );
     if (!data) {
       return '';
     }
     const doc = Elementary.transform(data);
     return doc;
+  }
+
+  /**
+   * 减少指定 key 的 times 计数
+   * 只有当 times > 0 时才执行减法，确保 times 不会小于 0
+   *
+   * @param {string} key
+   * @return {*} 返回更新结果，包含 matchedCount 和 modifiedCount
+   * @memberof AutoToken
+   */
+  @preCheckConnection
+  async decreaseTimes(key: string) {
+    const { model } = this;
+    const result = await model.updateOne(
+      { key, times: { $gt: 0 } }, // 只有当 times > 0 时才更新
+      { $inc: { times: -1 } },
+    );
+
+    // 添加日志以便调试
+    if (result.matchedCount === 0) {
+      console.warn(`decreaseTimes: 没有找到匹配的记录或 times <= 0, key: ${key}`);
+    } else if (result.modifiedCount === 0) {
+      console.warn(`decreaseTimes: 找到记录但未修改, key: ${key}`);
+    } else {
+      console.log(`decreaseTimes: 成功减少 times, key: ${key}`);
+    }
+
+    return result;
   }
 }
 

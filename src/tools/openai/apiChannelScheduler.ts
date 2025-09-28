@@ -140,6 +140,11 @@ export class EncapsulatedTransferOpenAI {
     });
     await autoTokenDB.close();
   }
+  async decreaseTimes() {
+    const autoTokenDB = new AutoToken();
+    await autoTokenDB.decreaseTimes(this.key);
+    await autoTokenDB.close();
+  }
 }
 
 export class EncapsulatedCopilot {
@@ -237,7 +242,7 @@ class TokenDB {
     if (!doc || docErr) {
       return Promise.reject('没有可用的transfer的token');
     }
-    return { key: 'transfer', token: doc.token!, origin: doc.origin };
+    return { key: doc.key, token: doc.token!, origin: doc.origin };
   }
   async getOpenaiToken(): Promise<
     Required<Pick<AutoTokenModel, 'key' | 'token'>> & Partial<Omit<AutoTokenModel, 'key' | 'token'>>
